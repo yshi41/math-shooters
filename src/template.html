@@ -1,0 +1,264 @@
+<title>Math Shooters</title>
+<style>
+/* Math Shooters, mechanics pass: one neutral palette and simple shapes. The Spelling Worlds palettes,
+   scenes and characters arrive with the theme pass (see build.js). */
+:root{--bg:#0f1b2d;--bg2:#1b2f4d;--surface:#fff;--surface-2:#eef3fa;--line:#cfd9e6;--ink:#17283a;--ink-soft:#5a6b7d;--accent:#3b82f6;--accent-deep:#1d4ed8;--good:#22c55e;--bad:#ef4444;--gold:#f5c842;--p1:#38bdf8;--p2:#fb923c;--shadow:0 8px 24px rgba(0,0,0,.18);--press:#b9c6d6}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{margin:0;background:linear-gradient(180deg,#dfeaf7,#c9dbf0) fixed;color:var(--ink);font:15px/1.4 system-ui,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none}
+h1,h2,h3{margin:0;line-height:1.2}
+button{font:inherit;color:inherit}
+.wrap{max-width:1000px;margin:0 auto;padding:14px 16px 28px}
+.card{background:var(--surface);border:2px solid var(--line);border-radius:22px;padding:16px;box-shadow:var(--shadow);margin-bottom:14px}
+.brand-big{font-size:clamp(2rem,6vw,3rem);font-weight:900;color:var(--accent-deep)}
+.lede{color:var(--ink-soft);font-weight:600;margin:.4em 0 0;max-width:56ch}
+.btn{border:0;border-radius:999px;padding:12px 22px;font-weight:800;font-size:1.05rem;background:var(--accent);color:#fff;cursor:pointer;box-shadow:0 5px 0 var(--accent-deep);touch-action:manipulation;min-height:48px}
+.btn:active:not(:disabled){transform:translateY(3px);box-shadow:0 2px 0 var(--accent-deep)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn-ghost{background:var(--surface-2);color:var(--ink);box-shadow:0 5px 0 var(--press)}
+.btn-ghost:active:not(:disabled){box-shadow:0 2px 0 var(--press)}
+.btn-good{background:var(--good);box-shadow:0 5px 0 #15803d}
+.btn-big{font-size:1.25rem;padding:16px 28px}
+.btn-big small{display:block;font-size:.7rem;font-weight:700;opacity:.85}
+.btn-sm{padding:8px 14px;font-size:.95rem;min-height:40px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.who{font-size:1.4rem;margin:18px 0 10px}
+.profile-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.profile-card{border:3px solid transparent;border-radius:22px;padding:18px 10px;display:grid;justify-items:center;gap:6px;cursor:pointer;background:var(--surface);box-shadow:var(--shadow);touch-action:manipulation}
+.profile-card:disabled{opacity:.55;cursor:progress}
+.profile-card.on{border-color:var(--accent)}
+.pc-ship{width:64px;height:64px}
+.pc-name{font-size:1.4rem;font-weight:800}
+.pc-meta{display:flex;gap:10px;font-weight:700;font-size:.9rem;color:var(--ink-soft)}
+.save-note{color:var(--ink-soft);font-weight:600;margin:14px 0 0}
+@media (max-width:560px){.profile-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.st{width:1.1em;height:1.1em;fill:var(--line);vertical-align:-.15em}
+.st.on{fill:var(--gold)}
+.ic{width:1.05em;height:1.05em;vertical-align:-.15em}
+.topbar2{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;background:var(--surface);border:2px solid var(--line);border-radius:22px;padding:8px 10px}
+.topbar2 .brand{flex:1;min-width:0;font-weight:900;font-size:1.2rem;color:var(--accent-deep);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stat{font-weight:800;background:var(--surface-2);border-radius:999px;padding:6px 12px;white-space:nowrap}
+.hub-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:780px){.hub-grid{grid-template-columns:1fr}}
+.card h3{font-size:1.2rem;margin-bottom:10px}
+.play-btns{display:grid;gap:10px}
+.perk{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.perk:first-child{border-top:0}
+.perk b{display:block}.perk span{color:var(--ink-soft);font-size:.9rem;font-weight:600}
+.perk .btn{margin-left:auto;white-space:nowrap;flex:0 0 auto}
+.toggles{display:flex;flex-wrap:wrap;gap:8px}
+.tog{border:2px solid var(--line);background:var(--surface-2);border-radius:999px;padding:9px 14px;font-weight:800;cursor:pointer;color:var(--ink-soft);min-height:44px;touch-action:manipulation}
+.tog[aria-pressed="true"]{border-color:var(--accent);color:var(--ink)}
+.how ul{margin:0;padding-left:1.1em;display:grid;gap:6px;color:var(--ink-soft);font-weight:600}
+.how b{color:var(--ink)}
+kbd{font:inherit;font-weight:800;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:0 6px}
+/* world map */
+.sector{margin-bottom:12px}
+.sector.locked{opacity:.6}
+.sec-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.sec-head h3{margin:0}
+.sec-head small{color:var(--ink-soft);font-weight:600}
+.sec-stars{margin-left:auto;font-weight:800;color:var(--ink-soft);white-space:nowrap}
+.worlds{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+@media (max-width:620px){.worlds{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.wbtn{border:2px solid var(--line);background:var(--surface-2);border-radius:18px;min-height:64px;padding:6px 4px;display:grid;justify-items:center;align-content:center;gap:2px;cursor:pointer;font-weight:800;box-shadow:0 4px 0 var(--line);touch-action:manipulation}
+.wbtn:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 var(--line)}
+.wbtn:disabled{cursor:default;opacity:.5}
+.wbtn .wn{font-size:1.3rem;color:var(--accent-deep)}
+.wbtn .ws{display:flex;gap:1px}.wbtn .ws .st{width:.95em;height:.95em}
+.wbtn small{font-size:.7rem;color:var(--ink-soft)}
+.wbtn.boss .wn{color:var(--bad)}
+.wbtn.next{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,.25),0 4px 0 var(--line)}
+/* the stage */
+.stage{position:relative;width:min(100%,600px);margin:0 auto;height:clamp(420px,calc(100dvh - 230px),760px);border-radius:24px;overflow:hidden;box-shadow:0 0 0 3px var(--line),var(--shadow);touch-action:none;user-select:none;-webkit-user-select:none;background:linear-gradient(180deg,var(--bg),var(--bg2))}
+.stage.wide{width:min(100%,760px)}
+#cv{position:absolute;inset:0;z-index:2;display:block}
+.hud{position:absolute;inset:0 0 auto 0;z-index:4;display:grid;grid-template-columns:1fr auto 1fr;grid-template-areas:"l eq r";align-items:start;gap:8px;padding:10px 12px;pointer-events:none;color:#fff}
+.hud-l{grid-area:l;display:grid;gap:4px;justify-items:start}
+.hud-r{grid-area:r;justify-self:end;display:flex;gap:8px;align-items:flex-start}
+.pill{background:rgba(255,255,255,.14);border:2px solid rgba(255,255,255,.25);border-radius:999px;padding:4px 10px;font-weight:800}
+.hearts{display:flex;gap:2px;align-items:center}
+.hearts .tag{font-size:.7rem;margin:0 4px 0 0;font-weight:900}
+.heart{width:22px;height:20px;transition:transform .3s,opacity .3s}
+.heart.lost{opacity:.22;transform:scale(.7)}
+.hud-small{font-weight:800;font-size:.8rem;background:rgba(255,255,255,.14);border-radius:99px;padding:2px 8px;display:inline-block;white-space:nowrap;font-variant-numeric:tabular-nums;color:#fff}
+.hud-small:empty{display:none}
+.hud-small.beat{background:var(--good)}
+.bar{height:8px;border-radius:99px;background:rgba(255,255,255,.2);overflow:hidden;width:min(130px,28vw)}
+.bar i{display:block;height:100%;background:var(--gold);border-radius:inherit;transition:width .3s}
+.chip{pointer-events:auto;cursor:pointer;border:0;touch-action:manipulation;min-height:28px}
+.ups{display:flex;gap:3px;flex-wrap:wrap;max-width:40vw}
+.ups span{font-size:.65rem;font-weight:900;background:rgba(255,255,255,.2);border-radius:6px;padding:1px 5px}
+.eq{grid-area:eq;font-size:clamp(1.7rem,6vw,2.8rem);font-weight:800;padding:.1em .55em .14em;border-radius:20px;background:#fff;color:var(--ink);border:3px solid var(--line);white-space:nowrap;font-variant-numeric:tabular-nums;box-shadow:var(--shadow)}
+.eq .x{color:var(--accent)}.eq .ans{display:inline-block;color:var(--accent-deep)}
+.eq.wait .ans{animation:qBob 1.1s ease-in-out infinite}
+.eq.ok{border-color:var(--good)}.eq.ok .ans{color:var(--good);animation:ansPop .5s}
+.eq.miss{border-color:var(--bad)}.eq.miss .ans{color:var(--bad);animation:ansPop .5s}
+.score-box{text-align:right;display:grid;justify-items:end;gap:3px}
+.score{font-size:clamp(1.2rem,4vw,1.7rem)}
+.combo{display:inline-block;font-weight:900;font-size:.8rem;padding:2px 10px;border-radius:99px;background:var(--accent);color:#fff}
+.combo:empty{display:none}
+.icon-btn{pointer-events:auto;width:40px;height:40px;border-radius:50%;border:2px solid rgba(255,255,255,.4);background:rgba(255,255,255,.15);color:#fff;cursor:pointer;display:grid;place-items:center;touch-action:manipulation;flex:0 0 auto}
+.icon-btn svg{width:20px;height:20px;stroke:#fff;stroke-width:3;fill:none;stroke-linecap:round}
+@media (max-width:620px){.hud{grid-template-columns:1fr 1fr;grid-template-areas:"l r" "eq eq";gap:4px 8px;padding:8px}.eq{justify-self:center;font-size:clamp(1.5rem,7vw,2.2rem)}.heart{width:18px;height:17px}.score-box .combo{display:none}}
+.banner{position:absolute;left:50%;top:44%;z-index:5;transform:translate(-50%,-50%) scale(0);text-align:center;pointer-events:none;font-size:clamp(2rem,8vw,4.2rem);font-weight:900;color:#fff;text-shadow:0 4px 0 var(--accent-deep),0 10px 24px rgba(0,0,0,.35);white-space:nowrap;opacity:0;max-width:96%}
+.banner small{font-size:.36em;color:var(--ink);text-shadow:none;background:#fff;border-radius:99px;padding:.15em .8em;margin-top:.25em;display:inline-block;white-space:normal}
+.banner.show{animation:bannerIn 1.35s ease-out forwards}
+.overlay{position:absolute;inset:0;z-index:6;display:grid;place-content:center;justify-items:center;gap:12px;background:rgba(15,27,45,.84);text-align:center;padding:16px;color:#fff;overflow:auto}
+.overlay h2{font-size:2rem}
+.overlay p{margin:0;font-weight:700;opacity:.9}
+.up-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;width:min(560px,92vw)}
+.up-card{position:relative;border:3px solid var(--line);background:#fff;color:var(--ink);border-radius:18px;padding:14px 10px 10px;display:grid;gap:4px;cursor:pointer;text-align:center;min-height:96px;touch-action:manipulation;box-shadow:0 5px 0 var(--line)}
+.up-card b{font-size:1.1rem}.up-card span{font-size:.85rem;color:var(--ink-soft);font-weight:600}
+.up-card i{font-style:normal;letter-spacing:2px;color:var(--accent-deep)}
+.up-card small{position:absolute;left:8px;top:6px;font-weight:900;color:var(--accent)}
+.touch .up-card small{display:none}
+.up-card.focus{outline:4px solid var(--accent);outline-offset:2px}
+.up-card.taken{opacity:.4;cursor:default}
+.up-card:active:not(:disabled){transform:translateY(3px);box-shadow:0 2px 0 var(--line)}
+.lane-pad{display:none;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:10px auto 0;max-width:600px}
+.lane-pad.fire{grid-template-columns:1fr 1fr 1.3fr 1fr}
+.touch .lane-pad{display:grid}
+@media (pointer:coarse){.lane-pad{display:grid}}
+.pad-btn{border:3px solid var(--line);background:var(--surface);color:var(--accent-deep);border-radius:20px;height:64px;font-size:1.6rem;font-weight:800;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:0 6px 0 var(--press)}
+.pad-btn.held{transform:translateY(4px);box-shadow:0 2px 0 var(--press)}
+.pad-btn.bomb{color:var(--bad);font-size:1.1rem}
+.pad-btn.firebtn{color:var(--good);font-size:1.1rem}
+.hint{color:var(--ink-soft);font-size:.9rem;font-weight:600;text-align:center;margin:10px 0 0}
+@media (max-width:620px){.wrap{padding:8px 8px 20px}.stage{height:clamp(380px,calc(100dvh - 150px),760px)}.hint{display:none}}
+@media (max-height:500px){.stage{height:calc(100dvh - 90px);min-height:260px}.pad-btn{height:52px}.hint{display:none}}
+/* results */
+.res{max-width:640px;margin:10px auto 0;text-align:center;display:grid;justify-items:center;gap:6px}
+.res-title{font-size:clamp(1.8rem,6vw,2.8rem);font-weight:900;color:var(--accent-deep)}
+.res-sub{color:var(--ink-soft);font-weight:700;margin:0}
+.bigstars{display:flex;justify-content:center;gap:10px;margin:8px 0}
+.bigstars .st{width:60px;height:60px;transform:scale(.8);transition:transform .35s cubic-bezier(.2,1.6,.4,1),fill .2s}
+.bigstars .st.on{transform:scale(1.1) rotate(-6deg)}
+.stats4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;width:100%;margin:6px 0 10px}
+@media (max-width:520px){.stats4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.sbox{background:var(--surface-2);border:2px solid var(--line);border-radius:16px;padding:8px 4px}
+.sbox b{display:block;font-size:1.5rem;font-weight:900;font-variant-numeric:tabular-nums}
+.sbox span{font-size:.72rem;font-weight:800;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.06em}
+.newbest{display:inline-block;background:var(--good);color:#fff;font-weight:900;border-radius:99px;padding:4px 14px;animation:wig 1s ease-in-out infinite}
+.chips{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.chip-m{font-weight:800;font-size:1.05rem;background:#fee2e2;border:2px solid var(--bad);border-radius:14px;padding:3px 12px}
+.toast2{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--good);color:#fff;font-weight:900;padding:10px 18px;border-radius:99px;box-shadow:var(--shadow);z-index:60;pointer-events:none}
+#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50}
+[hidden]{display:none!important}
+@keyframes bannerIn{0%{opacity:0;transform:translate(-50%,-50%) scale(.3) rotate(-6deg)}16%{opacity:1;transform:translate(-50%,-50%) scale(1.12) rotate(2deg)}28%{transform:translate(-50%,-50%) scale(1) rotate(0)}80%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-62%) scale(.92)}}
+@keyframes ansPop{0%{transform:scale(.4)}60%{transform:scale(1.35)}100%{transform:scale(1)}}
+@keyframes qBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes wig{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+</style>
+
+<canvas id="fx" aria-hidden="true"></canvas>
+
+<main class="wrap">
+  <section id="menu" class="screen">
+    <div class="card">
+      <h1 class="brand-big">Math Shooters</h1>
+      <p class="lede">Fly into the right answer, shoot the enemies and dodge everything else. Clear the worlds of each sector, grab upgrades between waves, and hold on to them: a hit or a wrong answer knocks one loose.</p>
+    </div>
+    <h2 class="who">Who's playing?</h2>
+    <div id="kids" class="profile-grid"></div>
+    <p id="saveNote" class="save-note">Loading saves…</p>
+    <button id="saveRetry" class="btn btn-ghost btn-sm" type="button" hidden style="margin-top:10px">Try again</button>
+  </section>
+
+  <section id="hub" class="screen" hidden>
+    <div class="topbar2">
+      <button id="switchBtn" class="btn btn-ghost btn-sm" type="button">Players</button>
+      <div class="brand">Math Shooters</div>
+      <span class="stat" id="statCur"></span><span class="stat" id="statStars"></span>
+    </div>
+    <div class="hub-grid">
+      <div>
+        <div class="card">
+          <h3 id="hubHello">Ready?</h3>
+          <div class="play-btns">
+            <button id="playBtn" class="btn btn-big" type="button">Play</button>
+            <button id="coopBtn" class="btn btn-ghost btn-big" type="button">Play together<small>2 players, one keyboard</small></button>
+          </div>
+        </div>
+        <div class="card how">
+          <h3>How to play</h3>
+          <ul>
+            <li><b>Catch the answer:</b> the problem is at the top. Fly your ship into the bubble with the right answer. A missed bubble floats back up and comes around again.</li>
+            <li><b>Shoot the enemies:</b> your ship fires on its own. Crashers dive at you, saucers shoot, and the tank guards world 6 of every sector. Bullets never pop answer bubbles.</li>
+            <li><b>Upgrades:</b> after each wave pick one of three. <b>Getting hit or catching a wrong answer costs a heart and knocks one upgrade loose</b>: grab the floating capsule to get it back.</li>
+            <li><b>Controls:</b> arrow keys or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> to fly, <kbd>B</kbd> for a bomb, <kbd>P</kbd> to pause. On a touch screen drag anywhere to fly.</li>
+            <li><b>Two players:</b> player 1 flies with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> and bombs with <kbd>Q</kbd>; player 2 flies with the arrows and bombs with <kbd>/</kbd>. Rescue a downed partner by flying into their bubble, take turns catching for Teamwork bonuses, and stay close so your beam pops enemy shots.</li>
+            <li><b>The map:</b> each sector is one kind of math and gets harder world by world. Clearing world 3 of a sector opens the next sector. Mixed opens last.</li>
+          </ul>
+        </div>
+      </div>
+      <div>
+        <div class="card"><h3>Store</h3><p class="lede" style="margin:0 0 8px;font-size:.9rem">Perks are yours for good. Treats come from every world you play.</p><div id="store"></div></div>
+        <div class="card"><h3>Settings</h3><div class="toggles"><button id="tSound" class="tog" type="button" aria-pressed="true">Sounds</button><button id="tAuto" class="tog" type="button" aria-pressed="true">Auto-fire</button></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="pick2" class="screen" hidden>
+    <div class="topbar2"><button id="pick2Back" class="btn btn-ghost btn-sm" type="button">Back</button><div class="brand">Who is playing with you?</div></div>
+    <div class="card"><div id="kids2" class="profile-grid"></div><p class="lede" style="font-size:.9rem">Player 1 flies with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> and bombs with <kbd>Q</kbd>. Player 2 flies with the arrow keys and bombs with <kbd>/</kbd>.</p></div>
+  </section>
+
+  <section id="map" class="screen" hidden>
+    <div class="topbar2"><button id="mapBack" class="btn btn-ghost btn-sm" type="button">Back</button><div class="brand" id="mapTitle">World map</div><span class="stat" id="mapStars"></span></div>
+    <div id="sectors"></div>
+  </section>
+
+  <section id="game" class="screen" hidden>
+    <div id="stage" class="stage">
+      <canvas id="cv"></canvas>
+      <div class="hud">
+        <div class="hud-l"><div id="hearts"></div><div id="stageLbl" class="hud-small"></div><div class="bar"><i id="progBar"></i></div><button id="bombs" class="hud-small chip" type="button" aria-label="Use a bomb"></button><div id="ups" class="ups"></div></div>
+        <div id="eq" class="eq">Ready?</div>
+        <div class="hud-r"><div class="score-box"><div id="score" class="pill score">0</div><div id="topLbl" class="hud-small"></div><div id="combo" class="combo"></div></div><button id="pauseBtn" class="icon-btn" type="button" aria-label="Pause"><svg viewBox="0 0 24 24"><path d="M9 5v14M15 5v14"/></svg></button></div>
+      </div>
+      <div id="banner" class="banner"></div>
+      <div id="upgrade" class="overlay" hidden><h2 id="upTitle">Wave clear!</h2><p id="upWho">Pick an upgrade</p><div id="upCards" class="up-cards"></div></div>
+      <div id="pauseMenu" class="overlay" hidden>
+        <h2>Paused</h2>
+        <p id="pauseKeys"></p>
+        <button id="resumeBtn" class="btn btn-good btn-big" type="button">Keep playing</button>
+        <button id="tAuto2" class="tog" type="button" aria-pressed="true">Auto-fire</button>
+        <button id="quitBtn" class="btn btn-ghost" type="button">End world and save</button>
+      </div>
+    </div>
+    <div id="lanePad" class="lane-pad">
+      <button id="padL" class="pad-btn" type="button" aria-label="Move left">◀</button>
+      <button id="padR" class="pad-btn" type="button" aria-label="Move right">▶</button>
+      <button id="padF" class="pad-btn firebtn" type="button" aria-label="Fire" hidden>FIRE</button>
+      <button id="padB" class="pad-btn bomb" type="button" aria-label="Bomb">BOMB</button>
+    </div>
+    <p class="hint" id="gameHint"></p>
+  </section>
+
+  <section id="results" class="screen" hidden>
+    <div class="card res">
+      <h2 id="resTitle" class="res-title">World clear!</h2>
+      <p id="resSub" class="res-sub"></p>
+      <div id="resStars" class="bigstars"></div>
+      <div id="resBest"></div>
+      <div class="stats4">
+        <div class="sbox"><b id="rScore">0</b><span>Score</span></div>
+        <div class="sbox"><b id="rRight">0</b><span>Right answers</span></div>
+        <div class="sbox"><b id="rCombo">0</b><span>Best streak</span></div>
+        <div class="sbox"><b id="rCur">0</b><span>Treats</span></div>
+      </div>
+      <p id="resTeam" class="res-sub"></p>
+      <div id="practice"></div>
+      <div class="row" style="justify-content:center;margin-top:8px">
+        <button id="againBtn" class="btn btn-big" type="button">Play again</button>
+        <button id="nextBtn" class="btn btn-good btn-big" type="button">Next world</button>
+        <button id="mapBtn" class="btn btn-ghost btn-big" type="button">World map</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+/*@@GAME_JS@@*/
+</script>

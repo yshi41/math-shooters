@@ -1,0 +1,8 @@
+{
+  "name": "math-shooters-test",
+  "private": true,
+  "description": "Headless Chrome checks for Math Shooters: node test.js ../index.html",
+  "devDependencies": {
+    "puppeteer-core": "^24.0.0"
+  }
+}
