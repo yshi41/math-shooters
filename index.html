@@ -454,7 +454,7 @@ function kid(id){return KIDS.find(k=>k.id===id)||KIDS[0]}
 function totalStars(p){let s=0;if(p)for(const k in p.stars)s+=p.stars[k]|0;return s}
 /* the save service: the Worker named by window.MS_CLOUD. Progress lives only there; nothing is kept in the browser.
    Each save names the revision it started from plus the copy it started from (base), so the service merges saves from two devices itself. */
-const CLOUD=(typeof window.MS_CLOUD==='string')?window.MS_CLOUD:null;
+const CLOUD=(typeof window.MS_CLOUD==='string'&&!/[?&]nosave/.test(location.search))?window.MS_CLOUD:null;
 const Net=(()=>{
   const REV={},BASE={},DIRTY={},SENDING={},TIMERS={};let LOADED=false,fails=0,retryT=null,warned=false;
   const snap=o=>JSON.parse(JSON.stringify(o));
@@ -488,7 +488,7 @@ function persist(){persistFor(player)}
 function renderSaveNote(){const n=$('#saveNote');
   n.textContent=saveMode==='loading'?'Loading saves…':saveMode==='on'?'Stars, treats and perks save online for every player.':saveMode==='error'?'Cannot reach the save server. Check the connection and try again.':'No save service on this copy, so nothing is kept.';
   $('#saveRetry').hidden=saveMode!=='error'}
-function setReady(mode){saveMode=mode;ready=mode==='on';renderSaveNote();if(screen==='menu')renderMenu()}
+function setReady(mode){saveMode=mode;ready=mode==='on'||mode==='off';renderSaveNote();if(screen==='menu')renderMenu()}
 $('#saveRetry').onclick=()=>{Snd.init();Snd.click();saveMode='loading';renderSaveNote();Net.retry()};
 
 /* ---------- screens ---------- */
