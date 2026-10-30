@@ -1,6 +1,6 @@
 (()=>{
 'use strict';
-const BUILD='2026-10-29.3';
+const BUILD='2026-10-29.4';
 const $=s=>document.querySelector(s);
 const rand=(a,b)=>a+Math.random()*(b-a);
 const ri=n=>Math.floor(Math.random()*n);
@@ -18,21 +18,21 @@ const cfont=s=>`800 ${Math.round(s)}px system-ui,"Segoe UI",Roboto,sans-serif`;
 const KIDS=[{id:'charlie',name:'Charlie',grade:4,col:'#38bdf8'},{id:'riley',name:'Riley',grade:3,col:'#fb923c'},{id:'yan',name:'Yan',grade:4,col:'#a78bfa'}];
 /* the map: one sector per kind of math, Mixed last; six worlds in each */
 const SECTORS=[
-  {id:'add',name:'Addition',sym:'+',blurb:{3:'Sums from 20 up to 1,000',4:'Sums from 100 up to 10,000'}},
-  {id:'sub',name:'Subtraction',sym:'−',blurb:{3:'Take-aways up to 1,000',4:'Take-aways up to 10,000'}},
+  {id:'add',name:'Addition',sym:'+',blurb:{3:'Sums from 10 up to 1,000',4:'Sums from 20 up to 2,000'}},
+  {id:'sub',name:'Subtraction',sym:'−',blurb:{3:'Take-aways from 10 up to 500',4:'Take-aways from 20 up to 5,000'}},
   {id:'tables',name:'Times Tables',sym:'×',blurb:{3:'Facts from 1×1 to 9×9, the 1s to 3s first',4:'Facts from 1×1 to 9×9, the 1s to 3s first'}},
-  {id:'mul',name:'Multiplication',sym:'×',blurb:{3:'Up to 50 × 9',4:'Up to 999 × 9'}},
-  {id:'div',name:'Division',sym:'÷',blurb:{3:'Up to 99 ÷ 9',4:'Up to 999 ÷ 9'}},
+  {id:'mul',name:'Multiplication',sym:'×',blurb:{3:'From 5 × 5 up to 30 × 5',4:'From 5 × 10 up to 99 × 12'}},
+  {id:'div',name:'Division',sym:'÷',blurb:{3:'From 25 ÷ 5 up to 300 ÷ 10',4:'From 50 ÷ 5 up to 900 ÷ 9'}},
   {id:'mix',name:'Mixed',sym:'✦',blurb:{3:'Everything at once',4:'Everything at once'}}];
 const WORLDS_PER=6;
 /* the slow ramp inside a sector: numbers, bubble speed and enemies per world (index = world - 1) */
 const WORLD_RAMP=[
-  {tier:1.0,speed:50,cap:1,crash:4.5,shooter:0,aim:false,crashHP:1,tank:false},
-  {tier:1.4,speed:54,cap:2,crash:4.0,shooter:0,aim:false,crashHP:1,tank:false},
-  {tier:2.0,speed:58,cap:2,crash:3.6,shooter:2.6,aim:false,crashHP:1,tank:false},
-  {tier:2.6,speed:62,cap:2,crash:3.2,shooter:2.2,aim:true,crashHP:1,tank:false},
-  {tier:3.4,speed:66,cap:3,crash:2.8,shooter:2.0,aim:true,crashHP:2,tank:false},
-  {tier:4.2,speed:70,cap:3,crash:2.6,shooter:1.8,aim:true,crashHP:2,tank:true}];
+  {tier:1.0,speed:85,cap:1,crash:4.5,shooter:3.0,aim:true,crashHP:1,tank:false},
+  {tier:1.4,speed:90,cap:2,crash:4.0,shooter:2.8,aim:true,crashHP:1,tank:false},
+  {tier:2.0,speed:95,cap:2,crash:3.6,shooter:2.6,aim:true,crashHP:1,tank:false},
+  {tier:2.6,speed:100,cap:2,crash:3.2,shooter:2.2,aim:true,crashHP:1,tank:false},
+  {tier:3.4,speed:106,cap:3,crash:2.8,shooter:2.0,aim:true,crashHP:2,tank:false},
+  {tier:4.2,speed:112,cap:3,crash:2.6,shooter:1.8,aim:true,crashHP:2,tank:true}];
 const MIX_TIERS=[2,2.6,3.2,3.8,4.4,5];
 const WAVE_N=5,WAVES=3,L_MAX=20,LOSE_ON_HIT=1;
 const loseOnWrong=wi=>wi>=5?2:1;
@@ -86,18 +86,18 @@ const MSMath=(function(){
   const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=ri(i+1);[a[i],a[j]]=[a[j],a[i]]}return a};
   const TOP=9;
   const factKey=(a,b)=>Math.min(a,b)+'x'+Math.max(a,b);
-  /* operand ranges per grade, tiers 1..5 */
-  const ADD={3:[[2,20,2,20],[10,50,10,50],[10,99,10,99],[100,500,10,99],[100,999,100,999]],4:[[10,99,10,99],[100,999,10,99],[100,999,100,999],[1000,4999,100,999],[1000,5000,1000,4999]]};
-  const SUB={3:[20,50,99,500,999],4:[99,999,999,4999,9999]};
-  const MUL={3:[[2,5,1,10],[2,9,1,10],'facts10',[11,30,2,5],[11,50,2,9]],4:[[2,12,2,12],[11,25,2,9],[20,99,2,9],[10,99,10,12],[100,999,2,9]]};
-  const DIV={3:[[2,5,1,10],[2,9,1,10],[2,10,1,12],[2,10,10,30],[2,9,10,99]],4:[[2,9,2,12],[2,9,10,30],[2,9,10,99],[10,12,2,30],[2,9,100,999]]};
+  /* operand ranges per grade, tiers 1..5; tier 1 starts with small, friendly numbers (Yan, 10/29: it started too hard) */
+  const ADD={3:[[1,10,1,10],[2,20,2,20],[10,50,10,50],[10,99,10,99],[100,999,10,99]],4:[[2,20,2,20],[10,99,1,9],[10,99,10,99],[100,999,10,99],[100,999,100,999]]};
+  const SUB={3:[10,20,50,99,500],4:[20,99,999,999,4999]};
+  const MUL={3:[[1,5,1,5],[2,5,1,10],[2,9,1,10],'facts10',[11,30,2,5]],4:[[2,5,1,10],[2,12,2,12],[11,25,2,9],[20,99,2,9],[10,99,10,12]]};
+  const DIV={3:[[2,5,1,5],[2,5,1,10],[2,9,1,10],[2,10,1,12],[2,10,10,30]],4:[[2,5,1,10],[2,9,2,12],[2,9,10,30],[2,9,10,99],[10,12,2,30]]};
   /* a fractional tier rolls the lower or the upper whole tier, so numbers creep up instead of jumping */
   function tierPick(t){t=clamp(+t||1,1,5);const f=Math.floor(t),fr=t-f;return (fr>0&&Math.random()<fr)?Math.min(5,f+1):f}
   function q(op,a,b,ans){const sym={add:'+',sub:'−',mul:'×',div:'÷'}[op],say={add:'plus',sub:'minus',mul:'times',div:'divided by'}[op];return {op,a,b,ans,sym,text:a+' '+sym+' '+b,say:a+' '+say+' '+b,key:op+':'+a+':'+b}}
   function genAdd(g,t){const r=ADD[g][t-1];const a=rint(r[0],r[1]),b=rint(r[2],r[3]);return q('add',a,b,a+b)}
   function genSub(g,t){const max=SUB[g][t-1];let ans,b;
-    if(g===4&&t===2){b=rint(10,99);ans=rint(1,max-b)}
-    else if(g===4&&t===3){b=rint(100,899);ans=rint(1,max-b)}
+    if(g===4&&t===3){b=rint(10,99);ans=rint(1,max-b)}
+    else if(g===4&&t===4){b=rint(100,899);ans=rint(1,max-b)}
     else{const a=rint(Math.max(3,Math.floor(max*.2)),max);b=rint(1,a-1);ans=a-b}
     return q('sub',ans+b,b,ans)}
   function genMul(g,t){const r=MUL[g][t-1];let a,b;
@@ -279,7 +279,7 @@ let G=null,W=600,H=600,lastWorld=null;
 function sizeStage(){const r=stage.getBoundingClientRect();W=Math.max(280,r.width);H=Math.max(260,r.height);const d=DPR();
   cv.width=Math.round(W*d);cv.height=Math.round(H*d);cv.style.width=W+'px';cv.style.height=H+'px';cx.setTransform(d,0,0,d,0,0);
   if(G){G.bs=clamp(Math.min(W/600,H/640),.6,1.5);G.cols=W<480?4:W<680?5:6;G.r=clamp(W*.06,24,44);G.shipW=clamp(W*.11,44,76);G.shipH=G.shipW*1.1;
-    for(const p of G.players){p.x=clamp(p.x,G.shipW/2,W-G.shipW/2);p.y=clamp(p.y,H*.55,H-G.shipH/2)}}}
+    for(const p of G.players){p.x=clamp(p.x,G.shipW/2,W-G.shipW/2);p.y=clamp(p.y,H*.1,H-G.shipH/2)}}}
 function colX(c){return W*(c+.5)/G.cols}
 function mkPlayer(i,id){const s=PF(id),perks=s.perks;
   const p={i,id,col:i?'#fb923c':'#38bdf8',x:0,y:0,vx:0,hearts:5,maxHearts:5,bombs:1,maxBombs:1,up:{},upStack:[],fireInt:.33,fireT:0,speedMul:1,magnetR:0,lucky:0,shieldOn:false,shieldT:0,inv:0,down:false,downT:0,out:false,catches:0,held:{},target:null,firing:false,wind:perks.includes('p_revive'),perks,noLoseSaid:false};
@@ -322,7 +322,7 @@ function dropUpgrade(p,n){for(let k=0;k<n;k++){let idx=-1;for(let i=p.upStack.le
 
 /* problems and answer bubbles */
 function spawnProblem(){const q=MSMath.problem(G.sector.id,G.grade,G.tier,G,PF(G.ids[0]).facts);G.q=q;G.qOpen=true;G.asked++;
-  const n=G.cols-1,opts=MSMath.choices(q,n),cols=shuffle([...Array(G.cols).keys()]).slice(0,n);
+  const n=3,opts=MSMath.choices(q,n),cols=shuffle([...Array(G.cols).keys()]).slice(0,n);
   opts.forEach((v,i)=>G.bubbles.push({v,ok:v===q.ans,col:cols[i],x:colX(cols[i]),y:-G.r-i*H*.14,state:'live',alpha:1,ph:rand(0,TAU),hold:0}));
   const eq=$('#eq');eq.className='eq wait';eq.innerHTML=eqHTML(q);updateHUD()}
 function eqHTML(q){return `${q.a} <span class="x">${q.sym}</span> ${q.b} = <b class="ans">?</b>`}
@@ -398,13 +398,13 @@ function setUpFocus(i){if(!G||G.phase!=='upgrade')return;G.focus=clamp(i,0,G.off
 
 /* enemies */
 function spawnCrasher(){let x=rand(30,W-30);for(let k=0;k<8&&G.waveT<1&&G.players.some(p=>Math.abs(p.x-x)<60);k++)x=rand(30,W-30);
-  G.enemies.push({kind:'crash',x,y:-24,vx:0,vy:120*G.bs,hp:G.ramp.crashHP,r:18*G.bs,dive:false,tx:x,wob:rand(0,TAU),flash:0,score:50})}
+  G.enemies.push({kind:'crash',x,y:-24,vx:0,vy:120*G.bs,hp:G.ramp.crashHP,r:18*G.bs,dive:false,tx:x,wob:rand(0,TAU),fireT:rand(.8,1.6),flash:0,score:50})}
 function spawnShooter(){const side=ri(2);G.enemies.push({kind:'shoot',x:side?W+30:-30,y:H*rand(.22,.3),vx:(side?-1:1)*90*G.bs,vy:0,hp:2,r:22*G.bs,fireT:G.ramp.shooter,life:9,flash:0,score:120,inside:false})}
 function spawnTank(){const hp=6+G.si;G.enemies.push({kind:'tank',x:W/2,y:-70,vx:0,vy:40*G.bs,hp,max:hp,r:40*G.bs,fireT:3,flash:0,score:300})}
 function fireEshot(e,ang,sp){G.eshots.push({x:e.x,y:e.y+e.r*.6,vx:Math.sin(ang)*sp,vy:Math.cos(ang)*sp,r:7})}
 function enemyFire(e){const sp=220*G.bs;
   if(e.kind==='tank'){for(const a of [-.44,0,.44])fireEshot(e,a,sp)}
-  else{let ang=0;if(G.ramp.aim&&G.wave>=2){const p=nearestShip(e.x,e.y);if(p)ang=Math.atan2(p.x-e.x,p.y-e.y)}fireEshot(e,ang,sp)}
+  else{let ang=0;if(G.ramp.aim){const p=nearestShip(e.x,e.y);if(p)ang=Math.atan2(p.x-e.x,p.y-e.y)}fireEshot(e,ang,sp)}
   Snd.shoot()}
 function updateEnemies(dt){const cap=Math.min(6,G.ramp.cap+(G.wave-1));
   if(G.phase==='run'){G.spawnT-=dt;if(G.spawnT<=0&&G.enemies.filter(e=>e.kind==='crash'&&!e.flee).length<cap){spawnCrasher();G.spawnT=G.ramp.crash*(G.grade===3?1.15:1)*rand(.8,1.2)}
@@ -412,7 +412,7 @@ function updateEnemies(dt){const cap=Math.min(6,G.ramp.cap+(G.wave-1));
   for(const e of G.enemies){e.flash=Math.max(0,e.flash-dt);
     if(e.flee){e.y-=400*dt;continue}
     if(e.kind==='crash'){e.wob+=dt*3;
-      if(!e.dive){e.x+=Math.sin(e.wob)*40*dt;e.y+=e.vy*dt;if(e.y>H*.55){e.dive=true;const p=nearestShip(e.x,e.y);e.tx=p?p.x:e.x}}
+      if(!e.dive){e.x+=Math.sin(e.wob)*40*dt;e.y+=e.vy*dt;if(G.phase==='run'&&e.y>0){e.fireT-=dt;if(e.fireT<=0){enemyFire(e);e.fireT=rand(2,3)}}if(e.y>H*.55){e.dive=true;const p=nearestShip(e.x,e.y);e.tx=p?p.x:e.x}}
       else{e.vx+=(clamp((e.tx-e.x)*3,-260*G.bs,260*G.bs)-e.vx)*Math.min(1,dt*4);e.x+=e.vx*dt;e.vy+=240*dt;e.y+=e.vy*dt}}
     else if(e.kind==='shoot'){e.x+=e.vx*dt;if(!e.inside&&e.x>e.r&&e.x<W-e.r)e.inside=true;if(e.inside&&(e.x<e.r||e.x>W-e.r)){e.vx=-e.vx;e.x=clamp(e.x,e.r,W-e.r)}
       e.life-=dt;if(e.life<=0)e.y-=200*dt;else if(G.phase==='run'){e.fireT-=dt;if(e.fireT<=0){enemyFire(e);e.fireT=G.ramp.shooter*rand(.85,1.15)}}}
@@ -438,7 +438,7 @@ function updatePlayers(dt){
     const sp=380*G.bs*p.speedMul;let dx=0,dy=0;const h=p.held;if(h.left)dx-=1;if(h.right)dx+=1;if(h.up)dy-=1;if(h.down)dy+=1;
     if(p.target){const tx=p.target.x-p.x,ty=p.target.y-p.y,d=Math.hypot(tx,ty);if(d>2){const step=Math.min(1,d/(sp*dt));dx=tx/d*step;dy=ty/d*step}}
     else if(dx&&dy){dx*=.7071;dy*=.7071}
-    const px=p.x;p.x=clamp(p.x+dx*sp*dt,G.shipW/2,W-G.shipW/2);p.y=clamp(p.y+dy*sp*dt,H*.55,H-G.shipH/2);p.vx=(p.x-px)/Math.max(dt,.001);
+    const px=p.x;p.x=clamp(p.x+dx*sp*dt,G.shipW/2,W-G.shipW/2);p.y=clamp(p.y+dy*sp*dt,H*.1,H-G.shipH/2);p.vx=(p.x-px)/Math.max(dt,.001);
     p.inv=Math.max(0,p.inv-dt);
     if(!p.shieldOn&&(p.up.shield|0)>0){p.shieldT-=dt;if(p.shieldT<=0){p.shieldOn=true;float('Shield up',p.x,p.y-50,'#7dd3fc',16);updateHUD()}}
     p.firing=G.phase==='run'&&!!h.fire;

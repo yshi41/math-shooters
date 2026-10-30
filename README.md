@@ -3,7 +3,7 @@
 A vertical shooter for the kids where the math is caught, not typed. Live at https://yshi41.github.io/math-shooters/
 
 The problem sits at the top and answer bubbles fall down the screen. **Bubbles cannot be shot**: fly the ship
-into the right one. A missed bubble floats back up and comes around again. Crashers dive at you, saucers shoot,
+into the right one. A missed bubble floats back up and comes around again. Every enemy shoots back: crashers fire and dive, saucers shoot,
 and a tank guards world 6 of every sector; hold the fire key to shoot them. After every wave you pick one of
 three upgrades, and **a hit or a wrong answer costs a heart and knocks one upgrade loose** as a capsule you
 can grab back before it fades. Progress runs through a **world map**: six sectors (Addition, Subtraction,

@@ -23,10 +23,12 @@ for (const cat of ['add', 'sub', 'tables', 'mul', 'div', 'mix']) for (const g of
   }
 }
 /* range spot checks */
-for (let i = 0; i < 300; i++) { const q = M.problem('add', 3, 1); check(q.ans <= 40, 'grade 3 addition tier 1 sums stay at or under 40'); }
-for (let i = 0; i < 300; i++) { const q = M.problem('mul', 4, 5); check(Math.max(q.a, q.b) >= 100, 'grade 4 multiplication tier 5 has a 3-digit factor'); }
+for (let i = 0; i < 300; i++) { const q = M.problem('add', 3, 1); check(q.ans <= 20, 'grade 3 addition tier 1 sums stay at or under 20'); }
+for (let i = 0; i < 300; i++) { const q = M.problem('add', 4, 1); check(q.ans <= 40, 'grade 4 addition tier 1 sums stay at or under 40'); }
+for (const op of ['sub', 'mul', 'div']) for (const g of [3, 4]) for (let i = 0; i < 300; i++) { const q = M.problem(op, g, 1); check(Math.max(q.a, q.b) <= 50, `grade ${g} ${op} tier 1 stays small (${q.text})`); }
+for (let i = 0; i < 300; i++) { const q = M.problem('mul', 4, 5); check(Math.max(q.a, q.b) >= 10 && q.ans >= 100, 'grade 4 multiplication tier 5 has a 2-digit factor and a 3-digit product'); }
 /* a fractional tier gives both sizes */
-let small = 0, big = 0; for (let i = 0; i < 400; i++) { const q = M.problem('add', 3, 1.4); if (q.ans <= 40) small++; else big++; }
+let small = 0, big = 0; for (let i = 0; i < 400; i++) { const q = M.problem('add', 3, 1.4); if (q.a <= 10 && q.b <= 10) small++; else big++; }
 check(small > 100 && big > 60, `tier 1.4 mixes tier 1 and tier 2 sizes (${small}/${big})`);
 /* the weighted deck favours the facts this kid gets wrong */
 const pool = M.tablePool(9); let hits = 0; for (let i = 0; i < 300; i++) { const d = M.deck({ '7x8': { r: 0, w: 5 } }, pool, 10); if (d.some(f => f.a === 7 && f.b === 8)) hits++; }

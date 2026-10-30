@@ -64,6 +64,8 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
 
   /* 2. a solo world (Addition 3): catch answers, take an upgrade, drop one on purpose and grab it back; another device saves meanwhile */
   await p.click('[data-w="add-3"]'); await wait(300);
+  /* every enemy shoots back now; extra hearts keep the bot alive long enough to check the save path */
+  await p.evaluate(() => { for (const q of window.__ms.G.players) { q.maxHearts = q.hearts = 20; } });
   mock.store.riley = { rev: 4, state: Object.assign(riley0(), { cur: 150, stars: { 'add-1': 2, 'add-2': 1, 'sub-1': 1 } }) };
   let picked = 0, wrongDone = false, wrongCheck = null, capsuleGrabbed = false, wrapSeen = false, lastBubbleY = null, stackBefore = 0, prev = null;
   for (let i = 0; i < 3000; i++) {
