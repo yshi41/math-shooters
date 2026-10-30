@@ -18,7 +18,7 @@ const snap = p => p.evaluate(() => { const G = window.__ms.G; if (!G) return nul
     players: G.players.map(q => ({ x: q.x, y: q.y, hearts: q.hearts, bombs: q.bombs, stack: q.upStack.length, down: q.down, out: q.out, firing: q.firing, up: q.up })),
     bubbles: G.bubbles.filter(b => b.state === 'live').map(b => ({ x: b.x, y: b.y, ok: b.ok })),
     enemies: G.enemies.filter(e => !e.flee).map(e => ({ x: e.x, y: e.y })), eshots: G.eshots.map(s => ({ x: s.x, y: s.y })), caps: G.capsules.map(c => ({ x: c.x, y: c.y })) }; });
-/* steer player pi toward (tx,ty): avoid wrong bubbles on the way and enemies nearby */
+/* steer player pi toward (tx,ty): avoid wrong bubbles on the way and enemies nearby; the bot holds fire the whole time (there is no auto-fire) */
 async function steer(p, pi, s, tx, ty, raw) {
   const me = s.players[pi], H = s.H; let dx = tx - me.x, dy = ty - me.y;
   const threat = raw ? null : s.enemies.concat(s.eshots).find(e => Math.abs(e.x - me.x) < 70 && e.y > H * .4 && e.y < me.y + 40);
@@ -29,9 +29,9 @@ async function steer(p, pi, s, tx, ty, raw) {
     const blockers = s.bubbles.filter(b => !b.ok && b.x > lo && b.x < hi && Math.abs(b.y - me.y) < 90);
     if (blockers.length) { const b = blockers[0]; dy = b.y > me.y ? -200 : 200; dx = 0; }
   }
-  await p.evaluate((i, h) => window.__ms.input(i, h), pi, { left: dx < -6, right: dx > 6, up: dy < -6, down: dy > 6 });
+  await p.evaluate((i, h) => window.__ms.input(i, h), pi, { left: dx < -6, right: dx > 6, up: dy < -6, down: dy > 6, fire: true });
 }
-const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, right: false, up: false, down: false }), pi);
+const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, right: false, up: false, down: false, fire: true }), pi);
 
 (async () => {
   const html = fs.readFileSync(file, 'utf8');
@@ -142,7 +142,7 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
     if (s.phase !== 'run') { await wait(80); continue; }
     const wrong = s.bubbles.find(b => !b.ok);
     if (wrong) await steer(p, 0, s, wrong.x, Math.max(s.H * .56, Math.min(wrong.y, s.H - 40)), true); else await stop(p, 0);
-    await p.evaluate(() => window.__ms.input(1, { left: false, right: false, up: false, down: true }));
+    await p.evaluate(() => window.__ms.input(1, { left: false, right: false, up: false, down: true, fire: true }));
     if (s.players[0].down) downSeen = true;
     await wait(50);
   }
@@ -153,7 +153,7 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
   for (let i = 0; i < 400 && !revived; i++) {
     s = await snap(p); if (!s) break;
     const a = s.players[0], b = s.players[1];
-    await p.evaluate((h) => window.__ms.input(1, h), { left: a.x < b.x - 6, right: a.x > b.x + 6, up: a.y < b.y - 6, down: a.y > b.y + 6 });
+    await p.evaluate((h) => window.__ms.input(1, h), { left: a.x < b.x - 6, right: a.x > b.x + 6, up: a.y < b.y - 6, down: a.y > b.y + 6, fire: true });
     if (!a.down && !a.out && a.hearts === 2) revived = true;
     await wait(50);
   }
@@ -167,7 +167,7 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
     if (s.phase !== 'run') { await wait(80); continue; }
     const ok = s.bubbles.find(b => b.ok);
     if (ok) await steer(p, 1, s, ok.x, Math.max(s.H * .56, Math.min(ok.y, s.H - 40))); else await stop(p, 1);
-    await p.evaluate(() => window.__ms.input(0, { left: false, right: false, up: false, down: true }));
+    await p.evaluate(() => window.__ms.input(0, { left: false, right: false, up: false, down: true, fire: true }));
     await wait(50);
   }
   await stop(p, 1);
@@ -214,7 +214,10 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
   await p.touchscreen.touchStart(sx, sy); for (let i = 1; i <= 8; i++) { await p.touchscreen.touchMove(sx - i * 14, sy - i * 10); await wait(40); } await wait(200); await p.touchscreen.touchEnd();
   const s2 = await snap(p);
   check(s2 && s2.players[0].x < s.players[0].x - 40 && s2.players[0].y < s.players[0].y - 20, `a drag moves the ship in both axes (${Math.round(s.players[0].x)},${Math.round(s.players[0].y)} to ${Math.round(s2.players[0].x)},${Math.round(s2.players[0].y)})`);
-  check(s2 && s2.players[0].firing, 'auto-fire is on');
+  check(s2 && !s2.players[0].firing, 'no auto-fire: the ship holds fire');
+  const fb = await p.evaluate(() => { const r = document.querySelector('#padF').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+  await p.touchscreen.touchStart(fb.x, fb.y); await wait(250); const s3 = await snap(p); await p.touchscreen.touchEnd();
+  check(s3 && s3.players[0].firing, 'holding FIRE shoots');
   await p.close();
 
   check(errs.length === 0, 'no page errors: ' + errs.join(' | '));

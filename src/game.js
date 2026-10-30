@@ -1,6 +1,6 @@
 (()=>{
 'use strict';
-const BUILD='2026-10-29.1';
+const BUILD='2026-10-29.2';
 const $=s=>document.querySelector(s);
 const rand=(a,b)=>a+Math.random()*(b-a);
 const ri=n=>Math.floor(Math.random()*n);
@@ -170,10 +170,10 @@ const Snd={ctx:null,on:true,
 /* ---------- saves (online only) ---------- */
 let screen='menu',ready=false,saveMode='loading';
 const saves={};let player=null,coopIds=null;
-function blank(){return {cur:0,games:0,stars:{},best:{},skill:{},facts:{},ops:{},perks:[],autoFire:true,coop:{played:0,wins:0}}}
+function blank(){return {cur:0,games:0,stars:{},best:{},skill:{},facts:{},ops:{},perks:[],coop:{played:0,wins:0}}}
 function normalize(d){const o=isObj(d)?d:{};const b=blank();b.cur=Math.max(0,o.cur|0);b.games=o.games|0;
   for(const k of ['stars','best','skill','facts','ops'])b[k]=isObj(o[k])?o[k]:{};
-  b.perks=Array.isArray(o.perks)?o.perks.filter(x=>PERKS[x]):[];b.autoFire=o.autoFire!==false;
+  b.perks=Array.isArray(o.perks)?o.perks.filter(x=>PERKS[x]):[];
   b.coop={played:(isObj(o.coop)&&o.coop.played)|0,wins:(isObj(o.coop)&&o.coop.wins)|0};return b}
 function PF(id){return saves[id]||(saves[id]=blank())}
 function P(){return PF(player)}
@@ -219,7 +219,12 @@ function setReady(mode){saveMode=mode;ready=mode==='on'||mode==='off';renderSave
 $('#saveRetry').onclick=()=>{Snd.init();Snd.click();saveMode='loading';renderSaveNote();Net.retry()};
 
 /* ---------- screens ---------- */
-function show(id){document.querySelectorAll('.screen').forEach(s=>s.hidden=s.id!==id);screen=id;window.scrollTo(0,0)}
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.hidden=s.id!==id);screen=id;document.body.dataset.screen=id;window.scrollTo(0,0)}
+/* full screen on the computer: entered when a world starts, kept across screens until Esc */
+function canFull(){return !!document.fullscreenEnabled&&matchMedia('(hover:hover) and (pointer:fine)').matches}
+function goFull(){if(!canFull()||document.fullscreenElement)return;try{const r=document.documentElement.requestFullscreen({navigationUI:'hide'});if(r&&r.catch)r.catch(()=>{})}catch(e){}}
+document.addEventListener('fullscreenchange',()=>{const on=!!document.fullscreenElement;document.body.classList.toggle('fs',on);$('#fsBtn').setAttribute('aria-pressed',String(on));
+  if(screen==='game'&&G){sizeStage();if(!on&&!G.paused)setPause(true)}});
 let toastT=null;
 function toast(msg){document.querySelectorAll('.toast2').forEach(t=>t.remove());const t=document.createElement('div');t.className='toast2';t.textContent=msg;document.body.append(t);clearTimeout(toastT);toastT=setTimeout(()=>t.remove(),2600)}
 function profileCard(k,onclick,on){const p=saves[k.id];const b=document.createElement('button');b.type='button';b.className='profile-card'+(on?' on':'');b.disabled=!ready;b.dataset.kid=k.id;
@@ -230,7 +235,7 @@ function openHub(){show('hub');renderHub()}
 function renderHub(){const p=P(),k=kid(player);$('#hubHello').textContent=`Ready, ${k.name}?`;
   $('#statCur').innerHTML=`${treatSvg} ${p.cur}`;$('#statStars').innerHTML=`${starSvg(true)} ${totalStars(p)}/${SECTORS.length*WORLDS_PER*3}`;
   $('#coopBtn').hidden=!canCoop();renderStore();
-  $('#tSound').setAttribute('aria-pressed',String(Snd.on));$('#tAuto').setAttribute('aria-pressed',String(p.autoFire!==false))}
+  $('#tSound').setAttribute('aria-pressed',String(Snd.on))}
 function renderStore(){const p=P();const box=$('#store');box.innerHTML='';
   PERK_LIST.forEach(pk=>{const own=p.perks.includes(pk.id);const d=document.createElement('div');d.className='perk';d.dataset.perk=pk.id;d.innerHTML=`<div><b>${pk.name}</b><span>${pk.blurb}</span></div>`;
     const b=document.createElement('button');b.type='button';b.className='btn btn-sm'+(own?' btn-ghost':'');
@@ -239,9 +244,6 @@ function renderStore(){const p=P();const box=$('#store');box.innerHTML='';
 function buyPerk(pk){const p=P();if(!pk||p.perks.includes(pk.id)||p.cur<pk.price)return;Snd.init();p.cur-=pk.price;p.perks.push(pk.id);persist();Snd.coin();toast(`${pk.name} is yours!`);fxBurst(innerWidth/2,innerHeight*.4,60);renderHub()}
 function tog(id,get,set){const b=$(id);b.onclick=()=>{Snd.init();set(!get());b.setAttribute('aria-pressed',String(get()));Snd.click()}}
 tog('#tSound',()=>Snd.on,v=>Snd.on=v);
-function setAuto(v){P().autoFire=v;persist();renderPad();$('#tAuto').setAttribute('aria-pressed',String(v));$('#tAuto2').setAttribute('aria-pressed',String(v))}
-tog('#tAuto',()=>P().autoFire!==false,setAuto);
-tog('#tAuto2',()=>P().autoFire!==false,setAuto);
 $('#switchBtn').onclick=()=>{Snd.click();show('menu');renderMenu()};
 $('#playBtn').onclick=()=>{Snd.init();Snd.click();coopIds=null;openMap()};
 $('#coopBtn').onclick=()=>{Snd.init();Snd.click();openPick2()};
@@ -272,13 +274,13 @@ const cv=$('#cv'),cx=cv.getContext('2d'),stage=$('#stage');
 let G=null,W=600,H=600,lastWorld=null;
 function sizeStage(){const r=stage.getBoundingClientRect();W=Math.max(280,r.width);H=Math.max(260,r.height);const d=DPR();
   cv.width=Math.round(W*d);cv.height=Math.round(H*d);cv.style.width=W+'px';cv.style.height=H+'px';cx.setTransform(d,0,0,d,0,0);
-  if(G){G.bs=clamp(W/600,.6,1.1);G.cols=W<480?4:W<680?5:6;G.r=clamp(W*.06,24,36);G.shipW=clamp(W*.11,44,64);G.shipH=G.shipW*1.1;
+  if(G){G.bs=clamp(Math.min(W/600,H/640),.6,1.5);G.cols=W<480?4:W<680?5:6;G.r=clamp(W*.06,24,44);G.shipW=clamp(W*.11,44,76);G.shipH=G.shipW*1.1;
     for(const p of G.players){p.x=clamp(p.x,G.shipW/2,W-G.shipW/2);p.y=clamp(p.y,H*.55,H-G.shipH/2)}}}
 function colX(c){return W*(c+.5)/G.cols}
 function mkPlayer(i,id){const s=PF(id),perks=s.perks;
   const p={i,id,col:i?'#fb923c':'#38bdf8',x:0,y:0,vx:0,hearts:5,maxHearts:5,bombs:1,maxBombs:1,up:{},upStack:[],fireInt:.33,fireT:0,speedMul:1,magnetR:0,lucky:0,shieldOn:false,shieldT:0,inv:0,down:false,downT:0,out:false,catches:0,held:{},target:null,firing:false,wind:perks.includes('p_revive'),perks,noLoseSaid:false};
   if(perks.includes('p_heart')){p.maxHearts=6;p.hearts=6}if(perks.includes('p_bomb')){p.maxBombs=2;p.bombs=2}return p}
-function startWorld(si,wi){Snd.init();Snd.click();const s=SECTORS[si],ids=coopIds||[player];lastWorld=[si,wi];
+function startWorld(si,wi){Snd.init();Snd.click();goFull();const s=SECTORS[si],ids=coopIds||[player];lastWorld=[si,wi];
   const ramp=WORLD_RAMP[wi-1],tier=s.id==='mix'?MIX_TIERS[wi-1]:ramp.tier,grade=Math.min(...ids.map(id=>kid(id).grade));
   const p0=PF(ids[0]),saved=(p0.skill&&p0.skill[s.id])||3;
   show('game');$('#pauseMenu').hidden=true;$('#upgrade').hidden=true;stage.classList.toggle('wide',ids.length>1);hudCache={};
@@ -289,9 +291,9 @@ function startWorld(si,wi){Snd.init();Snd.click();const s=SECTORS[si],ids=coopId
   G.peakL=G.L;sizeStage();
   G.players.forEach((p,i)=>{p.x=G.coop?W*(i?.7:.3):W/2;p.y=H-G.shipH*.9;if(p.perks.includes('p_fire'))applyUp(p,'rapid',true);if(p.perks.includes('p_shield'))applyUp(p,'shield',true);recompute(p)});
   for(let i=0;i<20;i++)G.dots.push({x:Math.random(),y:Math.random(),s:rand(1,3)});
-  $('#eq').className='eq';$('#eq').textContent='Ready?';updateHUD();renderPad();
+  $('#eq').className='eq';$('#eq').textContent='Ready?';updateHUD();
   banner(`${s.name} · World ${wi}`,G.coop?'Fly into the right answer together!':'Fly into the right answer!');
-  $('#gameHint').textContent=G.coop?'P1: W A S D to fly, Q bomb · P2: arrow keys, / bomb · P to pause':'Arrow keys or W A S D to fly · B for a bomb · P to pause · drag on a touch screen'}
+  $('#gameHint').textContent=G.coop?'P1: W A S D to fly, F to shoot, Q bomb · P2: arrow keys, . to shoot, / bomb · P to pause':'Arrow keys or W A S D to fly · Space to shoot · B for a bomb · P to pause'}
 function recompute(p){const u=p.up;p.fireInt=[.33,.25,.2,.16][Math.min(3,u.rapid|0)];p.speedMul=Math.pow(1.2,u.speed|0);
   p.magnetR=Math.max(p.perks.includes('p_magnet')?100:0,[0,120,200][Math.min(2,u.magnet|0)]);p.lucky=u.lucky|0;
   if(!(u.shield|0)){p.shieldOn=false;p.shieldT=0}
@@ -423,7 +425,7 @@ function useBomb(p){if(!G||G.paused||G.phase!=='run'||p.down||p.out||p.bombs<=0)
   G.eshots=[];G.flash=.5;G.flashCol='255,255,255';G.shake=20;Snd.special();banner('BOOM!');updateHUD()}
 
 /* ships, bullets and everything that touches them */
-function updatePlayers(dt){const auto=PF(G.ids[0]).autoFire!==false;
+function updatePlayers(dt){
   for(const p of G.players){if(p.out)continue;
     if(p.down){p.downT-=dt;p.y=Math.max(H*.5,p.y-10*dt);p.x=clamp(p.x+Math.sin(G.t*1.5+p.i)*20*dt,20,W-20);
       if(p.downT<=0){p.out=true;p.down=false;float(`${kid(p.id).name} is out until the next wave`,W/2,H*.4,'#fff',20);if(G.players.every(q=>q.down||q.out)){G.phase='lost';G.endAt=G.t+3;banner('Game over',`Score ${G.score.toLocaleString()}`)}}
@@ -435,7 +437,7 @@ function updatePlayers(dt){const auto=PF(G.ids[0]).autoFire!==false;
     const px=p.x;p.x=clamp(p.x+dx*sp*dt,G.shipW/2,W-G.shipW/2);p.y=clamp(p.y+dy*sp*dt,H*.55,H-G.shipH/2);p.vx=(p.x-px)/Math.max(dt,.001);
     p.inv=Math.max(0,p.inv-dt);
     if(!p.shieldOn&&(p.up.shield|0)>0){p.shieldT-=dt;if(p.shieldT<=0){p.shieldOn=true;float('Shield up',p.x,p.y-50,'#7dd3fc',16);updateHUD()}}
-    p.firing=G.phase==='run'&&(auto||!!h.fire);
+    p.firing=G.phase==='run'&&!!h.fire;
     p.fireT-=dt;if(p.firing&&p.fireT<=0){p.fireT=p.fireInt;shoot(p)}}}
 function shoot(p){const dmg=1+(p.up.power|0),sp=760*G.bs,angs=[0],s=p.up.spread|0;if(s>=1)angs.push(-.17,.17);if(s>=2)angs.push(-.35,.35);
   for(const a of angs)G.bullets.push({x:p.x+Math.sin(a)*6,y:p.y-G.shipH*.45,vx:Math.sin(a)*sp,vy:-Math.cos(a)*sp,dmg,col:p.col});Snd.shoot()}
@@ -584,10 +586,11 @@ $('#mapBtn').onclick=()=>{Snd.click();openMap()};
 
 /* ---------- pause ---------- */
 function setPause(on){if(!G)return;G.paused=on;$('#pauseMenu').hidden=!on;
-  $('#pauseKeys').textContent=G.coop?'P1: W A S D to fly, Q bomb · P2: arrow keys, / bomb':'Arrow keys or W A S D to fly · B for a bomb · drag on a touch screen';
-  $('#tAuto2').setAttribute('aria-pressed',String(P().autoFire!==false));
+  $('#pauseKeys').textContent=G.coop?'P1: W A S D to fly, F to shoot, Q bomb · P2: arrow keys, . to shoot, / bomb':'Arrow keys or W A S D to fly · Space to shoot · B for a bomb · on a touch screen drag to fly, hold FIRE to shoot';
+  $('#fsBtn').hidden=!canFull();$('#fsBtn').setAttribute('aria-pressed',String(!!document.fullscreenElement));
   try{if(Snd.ctx){on?Snd.ctx.suspend():Snd.ctx.resume()}}catch(e){}G.players.forEach(p=>{p.held={};p.target=null})}
 $('#pauseBtn').onclick=()=>setPause(!(G&&G.paused));
+$('#fsBtn').onclick=()=>{Snd.click();if(document.fullscreenElement){try{document.exitFullscreen().catch(()=>{})}catch(e){}}else goFull()};
 $('#resumeBtn').onclick=()=>setPause(false);
 $('#quitBtn').onclick=()=>{setPause(false);if(G&&!G.finished){G.finished=true;finish()}};
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&G&&!G.paused&&screen==='game')setPause(true)});
@@ -621,7 +624,6 @@ $('#padB').addEventListener('pointerdown',e=>{e.preventDefault();Snd.init();cons
 $('#padB').addEventListener('contextmenu',e=>e.preventDefault());
 $('#bombs').onclick=()=>{const p=p1();if(p)useBomb(p)};
 window.addEventListener('touchstart',()=>document.body.classList.add('touch'),{passive:true,once:true});
-function renderPad(){const auto=!player||P().autoFire!==false;$('#padF').hidden=auto;$('#lanePad').classList.toggle('fire',!auto)}
 window.addEventListener('resize',()=>{if(screen==='game'&&G)sizeStage()});
 
 /* page-level effects (results, store) */
