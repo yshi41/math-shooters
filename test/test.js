@@ -53,7 +53,11 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
   mock.store.riley = { rev: 3, state: riley0() };
   let p = await newPage(mock);
   await until(() => p.evaluate(() => !document.querySelector('.profile-card').disabled));
-  check(mock.stats.gets === 1, 'one GET loads every save'); check(mock.stats.realHits === 0, 'the real service is never called');
+  check(mock.stats.gets === 1, 'one GET loads every save');
+  /* the claude.ai db hands back frozen snapshots; the end of a world writes into the save, which crashed once (10/29) */
+  check(await p.evaluate(() => { const fz = o => { if (o && typeof o === 'object') { Object.values(o).forEach(fz); Object.freeze(o); } return o; };
+    try { const s = window.__ms.normalize(fz({ cur: 1, stars: { 'add-1': 1 }, best: { 'add-1': 5 }, skill: { add: 2 }, facts: { '2x3': { r: 1, w: 0 } }, ops: { add: { r: 1, w: 0 } }, perks: [], coop: { played: 0, wins: 0 } }));
+      s.stars['add-2'] = 3; s.best['add-1'] = 9; s.skill.add = 4; s.ops.add.r++; s.facts['2x3'].w++; s.coop.played++; return s.ops.add.r === 2 && s.stars['add-2'] === 3; } catch (e) { return false; } }), 'a frozen save from the db comes back writable'); check(mock.stats.realHits === 0, 'the real service is never called');
   check(await p.evaluate(() => document.querySelector('[data-kid=riley]').textContent.includes('100')), 'Riley shows her 100 treats');
   await p.click('[data-kid=riley]'); await wait(200);
   check(await p.evaluate(() => document.querySelector('[data-perk=p_heart] button').textContent === 'Owned'), 'the store shows Heart Locket as owned');

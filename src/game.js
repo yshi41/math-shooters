@@ -1,6 +1,6 @@
 (()=>{
 'use strict';
-const BUILD='2026-10-29.4';
+const BUILD='2026-10-29.5';
 const $=s=>document.querySelector(s);
 const rand=(a,b)=>a+Math.random()*(b-a);
 const ri=n=>Math.floor(Math.random()*n);
@@ -171,7 +171,8 @@ const Snd={ctx:null,on:true,
 let screen='menu',ready=false,saveMode='loading';
 const saves={};let player=null,coopIds=null;
 function blank(){return {cur:0,games:0,stars:{},best:{},skill:{},facts:{},ops:{},perks:[],coop:{played:0,wins:0}}}
-function normalize(d){const o=isObj(d)?d:{};const b=blank();b.cur=Math.max(0,o.cur|0);b.games=o.games|0;
+/* deep copy first: the claude.ai db hands back frozen snapshots, and the end-of-world bookkeeping writes into these objects */
+function normalize(d){const o=isObj(d)?JSON.parse(JSON.stringify(d)):{};const b=blank();b.cur=Math.max(0,o.cur|0);b.games=o.games|0;
   for(const k of ['stars','best','skill','facts','ops'])b[k]=isObj(o[k])?o[k]:{};
   b.perks=Array.isArray(o.perks)?o.perks.filter(x=>PERKS[x]):[];
   b.coop={played:(isObj(o.coop)&&o.coop.played)|0,wins:(isObj(o.coop)&&o.coop.wins)|0};return b}
@@ -282,7 +283,7 @@ function sizeStage(){const r=stage.getBoundingClientRect();W=Math.max(280,r.widt
     for(const p of G.players){p.x=clamp(p.x,G.shipW/2,W-G.shipW/2);p.y=clamp(p.y,H*.1,H-G.shipH/2)}}}
 function colX(c){return W*(c+.5)/G.cols}
 function mkPlayer(i,id){const s=PF(id),perks=s.perks;
-  const p={i,id,col:i?'#fb923c':'#38bdf8',x:0,y:0,vx:0,hearts:5,maxHearts:5,bombs:1,maxBombs:1,up:{},upStack:[],fireInt:.33,fireT:0,speedMul:1,magnetR:0,lucky:0,shieldOn:false,shieldT:0,inv:0,down:false,downT:0,out:false,catches:0,held:{},target:null,firing:false,wind:perks.includes('p_revive'),perks,noLoseSaid:false};
+  const p={i,id,col:i?'#fb923c':'#38bdf8',x:0,y:0,vx:0,mvx:0,mvy:0,hearts:5,maxHearts:5,bombs:1,maxBombs:1,up:{},upStack:[],fireInt:.33,fireT:0,speedMul:1,magnetR:0,lucky:0,shieldOn:false,shieldT:0,inv:0,down:false,downT:0,out:false,catches:0,held:{},target:null,firing:false,wind:perks.includes('p_revive'),perks,noLoseSaid:false};
   if(perks.includes('p_heart')){p.maxHearts=6;p.hearts=6}if(perks.includes('p_bomb')){p.maxBombs=2;p.bombs=2}return p}
 function startWorld(si,wi){Snd.init();Snd.click();goFull();const s=SECTORS[si],ids=coopIds||[player];lastWorld=[si,wi];
   const ramp=WORLD_RAMP[wi-1],tier=s.id==='mix'?MIX_TIERS[wi-1]:ramp.tier,grade=Math.min(...ids.map(id=>kid(id).grade));
@@ -435,10 +436,14 @@ function updatePlayers(dt){
       if(p.downT<=0){p.out=true;p.down=false;float(`${kid(p.id).name} is out until the next wave`,W/2,H*.4,'#fff',20);if(G.players.every(q=>q.down||q.out)){G.phase='lost';G.endAt=G.t+3;banner('Game over',`Score ${G.score.toLocaleString()}`)}}
       for(const q of G.players)if(q!==p&&!q.down&&!q.out&&dist(p.x,p.y,q.x,q.y)<G.shipW*.9)revive(p,q);
       continue}
-    const sp=380*G.bs*p.speedMul;let dx=0,dy=0;const h=p.held;if(h.left)dx-=1;if(h.right)dx+=1;if(h.up)dy-=1;if(h.down)dy+=1;
-    if(p.target){const tx=p.target.x-p.x,ty=p.target.y-p.y,d=Math.hypot(tx,ty);if(d>2){const step=Math.min(1,d/(sp*dt));dx=tx/d*step;dy=ty/d*step}}
-    else if(dx&&dy){dx*=.7071;dy*=.7071}
-    const px=p.x;p.x=clamp(p.x+dx*sp*dt,G.shipW/2,W-G.shipW/2);p.y=clamp(p.y+dy*sp*dt,H*.1,H-G.shipH/2);p.vx=(p.x-px)/Math.max(dt,.001);
+    const sp=380*G.bs*p.speedMul;let dx=0,dy=0,wx=0,wy=0;const h=p.held;if(h.left)dx-=1;if(h.right)dx+=1;if(h.up)dy-=1;if(h.down)dy+=1;
+    if(p.target){const tx=p.target.x-p.x,ty=p.target.y-p.y,d=Math.hypot(tx,ty);if(d>1){const s=Math.min(sp*1.2,d*12);wx=tx/d*s;wy=ty/d*s}}
+    else{if(dx&&dy){dx*=.7071;dy*=.7071}wx=dx*sp;wy=dy*sp}
+    /* ease toward the wanted velocity so starts, stops and turns glide instead of snapping */
+    const k=1-Math.exp(-dt*(p.target?20:14));p.mvx+=(wx-p.mvx)*k;p.mvy+=(wy-p.mvy)*k;
+    const px=p.x,nx=p.x+p.mvx*dt,ny=p.y+p.mvy*dt;p.x=clamp(nx,G.shipW/2,W-G.shipW/2);p.y=clamp(ny,H*.1,H-G.shipH/2);
+    if(p.x!==nx)p.mvx=0;if(p.y!==ny)p.mvy=0;
+    p.vx+=((p.x-px)/Math.max(dt,.001)-p.vx)*Math.min(1,dt*10);
     p.inv=Math.max(0,p.inv-dt);
     if(!p.shieldOn&&(p.up.shield|0)>0){p.shieldT-=dt;if(p.shieldT<=0){p.shieldOn=true;float('Shield up',p.x,p.y-50,'#7dd3fc',16);updateHUD()}}
     p.firing=G.phase==='run'&&!!h.fire;
@@ -659,7 +664,7 @@ renderMenu();renderSaveNote();requestAnimationFrame(frame);
     },()=>{clearTimeout(fallback);db=null;setReady('off')});
   }catch(e){clearTimeout(fallback);db=null;setReady('off')}
 })();
-window.__ms={get G(){return G},get saves(){return saves},net:Net,cloud:CLOUD,MSMath,BUILD,SECTORS,WORLD_RAMP,UPGRADES,PERKS,
+window.__ms={get G(){return G},normalize,get saves(){return saves},net:Net,cloud:CLOUD,MSMath,BUILD,SECTORS,WORLD_RAMP,UPGRADES,PERKS,
   input(i,h){if(G&&G.players[i]){Object.assign(G.players[i].held,h);G.players[i].target=null}},pickUp,useBomb,startWorld,setCoop(ids){coopIds=ids},player:()=>player,P:()=>P(),buyPerk:id=>buyPerk(PERKS[id]),worldOpen:(si,wi)=>worldOpen(P(),si,wi)};
 if(CLOUD&&location.protocol.startsWith('http'))setTimeout(()=>{fetch(location.pathname,{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD='([^']+)'/);if(m&&m[1]!==BUILD&&!location.search.includes('v='+m[1]))location.replace(location.pathname+'?v='+m[1])}).catch(()=>{})},1500);
 })();
