@@ -1,6 +1,6 @@
 (()=>{
 'use strict';
-const BUILD='2026-10-29.2';
+const BUILD='2026-10-29.3';
 const $=s=>document.querySelector(s);
 const rand=(a,b)=>a+Math.random()*(b-a);
 const ri=n=>Math.floor(Math.random()*n);
@@ -179,7 +179,8 @@ function PF(id){return saves[id]||(saves[id]=blank())}
 function P(){return PF(player)}
 function kid(id){return KIDS.find(k=>k.id===id)||KIDS[0]}
 function totalStars(p){let s=0;if(p)for(const k in p.stars)s+=p.stars[k]|0;return s}
-/* the save service: the Worker named by window.MS_CLOUD. Progress lives only there; nothing is kept in the browser.
+/* the save service: the Worker named by window.MS_CLOUD (GitHub Pages), otherwise the artifact's db on claude.ai.
+   Progress lives only there; nothing is kept in the browser.
    Each save names the revision it started from plus the copy it started from (base), so the service merges saves from two devices itself. */
 const CLOUD=(typeof window.MS_CLOUD==='string'&&!/[?&]nosave/.test(location.search))?window.MS_CLOUD:null;
 const Net=(()=>{
@@ -210,10 +211,13 @@ const Net=(()=>{
   window.addEventListener('online',()=>{if(CLOUD)retry()});
   return {refresh,schedule,retry,flush,idle:()=>{for(const id in SENDING)if(SENDING[id])return false;for(const id in TIMERS)if(TIMERS[id])return false;return true},rev:id=>REV[id]||0}
 })();
-function persistFor(id){if(id&&CLOUD)Net.schedule(id)}
+let db=null,saveQ=Promise.resolve();
+function persistFor(id){if(!id)return;
+  if(db){const body=JSON.parse(JSON.stringify(PF(id)));body.updated=Date.now();saveQ=saveQ.then(()=>db.doc('players/'+id).set(body)).catch(()=>toast('Could not save just now. Check the connection.'))}
+  else if(CLOUD)Net.schedule(id)}
 function persist(){persistFor(player)}
 function renderSaveNote(){const n=$('#saveNote');
-  n.textContent=saveMode==='loading'?'Loading saves…':saveMode==='on'?'Stars, treats and perks save online for every player.':saveMode==='error'?'Cannot reach the save server. Check the connection and try again.':'No save service on this copy, so nothing is kept.';
+  n.textContent=saveMode==='loading'?'Loading saves…':saveMode==='on'?'Stars, treats and perks save online for every player.':saveMode==='error'?'Cannot reach the save server. Check the connection and try again.':'Saving is off in this view, so stars and treats are not kept. Open the game on claude.ai while signed in to save.';
   $('#saveRetry').hidden=saveMode!=='error'}
 function setReady(mode){saveMode=mode;ready=mode==='on'||mode==='off';renderSaveNote();if(screen==='menu')renderMenu()}
 $('#saveRetry').onclick=()=>{Snd.init();Snd.click();saveMode='loading';renderSaveNote();Net.retry()};
@@ -639,8 +643,23 @@ function drawFX(dt){if(!FX.length){if(fxOn){const {c,w,h}=fxFit();c.clearRect(0,
 
 let last=performance.now();
 function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;if(screen==='game'&&G){if(!G.paused)update(dt);if(G)draw()}drawFX(dt);requestAnimationFrame(frame)}
-renderMenu();renderSaveNote();if(CLOUD)Net.refresh();else setReady('off');requestAnimationFrame(frame);
+renderMenu();renderSaveNote();requestAnimationFrame(frame);
+(async()=>{
+  if(CLOUD){Net.refresh();return}
+  if(/[?&]nosave/.test(location.search)){setReady('off');return}
+  let d=null;try{d=window.claude&&window.claude.use?await window.claude.use('db'):null}catch(e){d=null}
+  if(!d){setReady('off');return}
+  db=d;let gotAny=false;
+  const fallback=setTimeout(()=>{if(!ready){if(gotAny)setReady('on');else{db=null;setReady('off')}}},10000);
+  try{
+    db.collection('players').onSnapshot(snap=>{gotAny=true;
+      snap.docs.forEach(doc=>{if(KIDS.some(k=>k.id===doc.id)&&doc.exists)saves[doc.id]=normalize(doc.data())});
+      if(!snap.metadata.fromCache&&!ready){clearTimeout(fallback);setReady('on')}
+      if(screen==='menu')renderMenu();else if(screen==='hub')renderHub();else if(screen==='map')renderMap()
+    },()=>{clearTimeout(fallback);db=null;setReady('off')});
+  }catch(e){clearTimeout(fallback);db=null;setReady('off')}
+})();
 window.__ms={get G(){return G},get saves(){return saves},net:Net,cloud:CLOUD,MSMath,BUILD,SECTORS,WORLD_RAMP,UPGRADES,PERKS,
   input(i,h){if(G&&G.players[i]){Object.assign(G.players[i].held,h);G.players[i].target=null}},pickUp,useBomb,startWorld,setCoop(ids){coopIds=ids},player:()=>player,P:()=>P(),buyPerk:id=>buyPerk(PERKS[id]),worldOpen:(si,wi)=>worldOpen(P(),si,wi)};
-if(location.protocol.startsWith('http'))setTimeout(()=>{fetch(location.pathname,{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD='([^']+)'/);if(m&&m[1]!==BUILD&&!location.search.includes('v='+m[1]))location.replace(location.pathname+'?v='+m[1])}).catch(()=>{})},1500);
+if(CLOUD&&location.protocol.startsWith('http'))setTimeout(()=>{fetch(location.pathname,{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD='([^']+)'/);if(m&&m[1]!==BUILD&&!location.search.includes('v='+m[1]))location.replace(location.pathname+'?v='+m[1])}).catch(()=>{})},1500);
 })();

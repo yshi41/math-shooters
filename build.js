@@ -2,7 +2,8 @@
    Mechanics pass: placeholder art only. The theme pass will copy the Spelling Worlds palettes, scenes and
    characters here by named anchors (see times-table-worlds/build.js for the css span and js parts list)
    and inline them at the same kind of markers.
-   Output: index.html for GitHub Pages (saves go to the Worker). */
+   Outputs: index.html for GitHub Pages (saves go to the Worker) and, when a path is given, the artifact body
+   for claude.ai (saves go to the artifact's db). */
 const fs = require('fs'), path = require('path');
 const D = __dirname;
 const WORKER = 'https://math-shooters-saves.yshi41.workers.dev';
@@ -21,3 +22,5 @@ const head = '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\
 const pages = head + pagesBody + '\n</body>\n</html>\n';
 fs.writeFileSync(path.join(D, 'index.html'), pages);
 console.log('index.html', pages.length, 'bytes, build', BUILD);
+const artifact = process.argv[2];
+if (artifact) { fs.writeFileSync(artifact, body); console.log('artifact', artifact, body.length, 'bytes'); }
