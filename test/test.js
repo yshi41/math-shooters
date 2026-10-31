@@ -15,9 +15,9 @@ const riley0 = () => ({ cur: 100, games: 1, stars: { 'add-1': 2, 'add-2': 1 }, b
 /* what the drive loop sees each tick */
 const snap = p => p.evaluate(() => { const G = window.__ms.G; if (!G) return null; const cv = document.querySelector('#cv');
   return { phase: G.phase, wave: G.wave, correct: G.correct, wrongs: G.wrongs, W: cv.clientWidth, H: cv.clientHeight, qOpen: G.qOpen, offer: G.offer, taken: G.taken,
-    players: G.players.map(q => ({ x: q.x, y: q.y, hearts: q.hearts, bombs: q.bombs, stack: q.upStack.length, down: q.down, out: q.out, firing: q.firing, up: q.up })),
+    players: G.players.map(q => ({ x: q.x, y: q.y, hearts: q.hearts, bombs: q.bombs, lv: Object.values(q.up).reduce((a, b) => a + b, 0), charge: q.charge, laser: q.laser, down: q.down, out: q.out, firing: q.firing, up: q.up })),
     bubbles: G.bubbles.filter(b => b.state === 'live').map(b => ({ x: b.x, y: b.y, ok: b.ok })),
-    enemies: G.enemies.filter(e => !e.flee).map(e => ({ x: e.x, y: e.y })), eshots: G.eshots.map(s => ({ x: s.x, y: s.y })), caps: G.capsules.map(c => ({ x: c.x, y: c.y })) }; });
+    enemies: G.enemies.filter(e => !e.flee).map(e => ({ x: e.x, y: e.y })), eshots: G.eshots.map(s => ({ x: s.x, y: s.y })), bullets: G.bullets.length }; });
 /* steer player pi toward (tx,ty): avoid wrong bubbles on the way and enemies nearby; the bot holds fire the whole time (there is no auto-fire) */
 async function steer(p, pi, s, tx, ty, raw) {
   const me = s.players[pi], H = s.H; let dx = tx - me.x, dy = ty - me.y;
@@ -66,47 +66,53 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
   check(await p.evaluate(() => !document.querySelector('[data-w="add-3"]').disabled && document.querySelector('[data-w="add-4"]').disabled && document.querySelector('[data-w="sub-1"]').disabled), 'the map opens add-3 and locks add-4 and sub-1');
   check(await p.evaluate(() => document.querySelectorAll('[data-w="add-1"] .st.on').length === 2), 'add-1 shows its two stars');
 
-  /* 2. a solo world (Addition 3): catch answers, take an upgrade, drop one on purpose and grab it back; another device saves meanwhile */
+  /* 2. a solo world (Addition 3): left Ctrl shoots, left Shift fires the laser, upgrades stay through a wrong catch and are saved; another device saves meanwhile */
   await p.click('[data-w="add-3"]'); await wait(300);
   /* every enemy shoots back now; extra hearts keep the bot alive long enough to check the save path */
   await p.evaluate(() => { for (const q of window.__ms.G.players) { q.maxHearts = q.hearts = 20; } });
   mock.store.riley = { rev: 4, state: Object.assign(riley0(), { cur: 150, stars: { 'add-1': 2, 'add-2': 1, 'sub-1': 1 } }) };
-  let picked = 0, wrongDone = false, wrongCheck = null, capsuleGrabbed = false, wrapSeen = false, lastBubbleY = null, stackBefore = 0, prev = null;
+  await until(() => p.evaluate(() => window.__ms.G && window.__ms.G.phase === 'run'), 6000);
+  await p.evaluate(() => window.__ms.input(0, { fire: false })); await wait(500);
+  const quiet = (await snap(p)).bullets;
+  await p.keyboard.down('ControlLeft'); await wait(400);
+  const ctrlShots = (await snap(p)).bullets; await p.keyboard.up('ControlLeft'); await wait(100);
+  check(quiet === 0 && ctrlShots > 0, 'nothing fires on its own and left Ctrl shoots (' + quiet + ' then ' + ctrlShots + ')');
+  check((await snap(p)).players[0].charge === 1, 'the laser starts charged');
+  await p.keyboard.press('ShiftLeft'); await wait(100);
+  let ls = (await snap(p)).players[0];
+  check(ls.laser > 0 && ls.charge === 0, 'left Shift fires the laser and empties the charge');
+  await wait(2200);
+  await p.keyboard.press('ShiftLeft'); await wait(100);
+  ls = (await snap(p)).players[0];
+  check(ls.laser <= 0 && ls.charge > 0 && ls.charge < 1, 'the laser stops after two seconds and has to charge again (' + ls.charge.toFixed(2) + ')');
+  let picked = 0, wrongDone = false, wrongCheck = null, wrapSeen = false, lastBubbleY = null, prev = null;
   for (let i = 0; i < 3000; i++) {
     const s = await snap(p); if (!s) break;
     if (s.phase === 'upgrade') { if (picked < s.wave) { picked = s.wave;
-        /* take a losable card so the wrong-catch check below has something to knock loose */
-        const idx = await p.evaluate(() => [...document.querySelectorAll('#upCards .up-card')].findIndex(b => ['rapid', 'spread', 'power', 'shield', 'speed', 'slow', 'magnet', 'lucky', 'bomb'].includes(b.dataset.up)));
+        /* take a real upgrade (not a filler) so the saved levels can be checked */
+        const idx = await p.evaluate(() => [...document.querySelectorAll('#upCards .up-card')].findIndex(b => !['heal', 'treats'].includes(b.dataset.up)));
         await p.keyboard.press(String((idx < 0 ? 0 : idx) + 1)); await wait(150); } continue; }
     if (s.phase !== 'run') { await stop(p, 0); await wait(80); continue; }
     const me = s.players[0], ok = s.bubbles.find(b => b.ok), wrong = s.bubbles.find(b => !b.ok);
     if (ok) { if (lastBubbleY != null && ok.y < lastBubbleY - s.H * .5) wrapSeen = true; lastBubbleY = ok.y; }
     const zoneY = y => Math.max(s.H * .56, Math.min(y, s.H - 40));
-    if (prev && !wrongDone && s.wrongs > prev.wrongs) { wrongDone = true; stackBefore = prev.stack; wrongCheck = { hearts: me.hearts < prev.hearts, stack: me.stack < prev.stack, caps: s.caps.length > 0 }; }
-    if (s.wave >= 2 && !wrongDone) {
-      /* on purpose: first get any level back that an enemy knocked off, then fly into a wrong answer */
-      if (me.stack === 0 && s.caps.length) await steer(p, 0, s, s.caps[0].x, zoneY(s.caps[0].y), true);
-      else if (me.stack > 0 && wrong) await steer(p, 0, s, wrong.x, zoneY(wrong.y), true);
-      else if (ok && me.stack === 0) await steer(p, 0, s, ok.x, zoneY(ok.y));
-      else await stop(p, 0);
-    } else if (wrongDone && !capsuleGrabbed) {
-      if (me.stack >= stackBefore) capsuleGrabbed = true;
-      else if (s.caps.length) await steer(p, 0, s, s.caps[0].x, zoneY(s.caps[0].y), true);
-      else if (ok) await steer(p, 0, s, ok.x, zoneY(ok.y)); else await stop(p, 0);
-    } else if (ok) await steer(p, 0, s, ok.x, zoneY(ok.y));
+    if (prev && !wrongDone && s.wrongs > prev.wrongs) { wrongDone = true; wrongCheck = { hearts: me.hearts < prev.hearts, kept: me.lv === prev.lv, lv: me.lv, wave: s.wave }; }
+    if (s.wave >= 2 && !wrongDone && wrong) await steer(p, 0, s, wrong.x, zoneY(wrong.y), true);
+    else if (ok) await steer(p, 0, s, ok.x, zoneY(ok.y));
     else await stop(p, 0);
-    prev = { hearts: me.hearts, stack: me.stack, wrongs: s.wrongs };
+    prev = { hearts: me.hearts, lv: me.lv, wrongs: s.wrongs };
     await wait(50);
   }
   check(picked === 2, 'an upgrade was picked after waves 1 and 2 (' + picked + ')');
-  check(wrongDone && wrongCheck.hearts && wrongCheck.stack && wrongCheck.caps, 'a wrong catch cost a heart and a power-up level, which floated off as a capsule ' + JSON.stringify(wrongCheck));
-  check(capsuleGrabbed, 'the dropped power-up was grabbed back');
+  check(wrongDone && wrongCheck.hearts && wrongCheck.kept, 'a wrong catch cost a heart but no upgrade ' + JSON.stringify(wrongCheck));
   check(wrapSeen, 'a missed bubble came back around at the top');
   check(await until(() => p.evaluate(() => !document.querySelector('#results').hidden), 5000), 'the world ended on the results screen');
   const won = await p.evaluate(() => document.querySelector('#resTitle').textContent.includes('clear') || document.querySelector('#resTitle').textContent.includes('Perfect'));
   check(won, 'the world was cleared (' + await p.evaluate(() => document.querySelector('#resTitle').textContent) + ')');
   await until(() => p.evaluate(() => window.__ms.net.idle()));
   const r = mock.store.riley.state;
+  const savedLv = Object.values(r.ups || {}).reduce((x, y) => x + y, 0);
+  check(savedLv >= 2, 'the picked upgrades were saved (' + JSON.stringify(r.ups) + ')');
   check(mock.store.riley.rev === 5, 'the save landed on top of the other device (rev ' + mock.store.riley.rev + ')');
   check(mock.stats.merges === 1, 'the service merged it');
   check((r.stars['add-3'] | 0) >= 1 && r.stars['sub-1'] === 1 && r.stars['add-1'] === 2, 'stars kept from both copies (' + JSON.stringify(r.stars) + ')');
@@ -124,7 +130,8 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
   check(mock.store.riley.state.perks.includes('p_bomb') && mock.store.riley.state.perks.includes('p_heart') && mock.stats.conflicts === 0, 'the purchase reached the save without a conflict');
   await p.evaluate(() => window.__ms.startWorld(0, 1)); await wait(300);
   let s = await snap(p);
-  check(s && s.players[0].bombs === 2 && s.players[0].hearts === 6, 'the next world starts with 2 bombs and 6 hearts');
+  check(s && s.players[0].bombs >= 2 && s.players[0].hearts >= 6, 'the next world starts with the perks: 2+ bombs and 6+ hearts');
+  check(s && s.players[0].lv === savedLv, 'the next world starts with the saved upgrades (' + s.players[0].lv + ' of ' + savedLv + ' levels)');
   await p.keyboard.press('p'); await wait(150);
   check(await p.evaluate(() => !document.querySelector('#pauseMenu').hidden && window.__ms.G.paused), 'P pauses');
   await p.click('#quitBtn'); await wait(300);

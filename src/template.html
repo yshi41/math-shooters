@@ -117,12 +117,13 @@ kbd{font:inherit;font-weight:800;background:var(--surface-2);border:1px solid va
 .up-card.taken{opacity:.4;cursor:default}
 .up-card:active:not(:disabled){transform:translateY(3px);box-shadow:0 2px 0 var(--line)}
 .lane-pad{display:none;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:10px auto 0;max-width:600px}
-.lane-pad.fire{grid-template-columns:1fr 1fr 1.3fr 1fr}
+.lane-pad.fire{grid-template-columns:1fr 1fr 1.3fr 1fr 1fr}
 .touch .lane-pad{display:grid}
 @media (pointer:coarse){.lane-pad{display:grid}}
 .pad-btn{border:3px solid var(--line);background:var(--surface);color:var(--accent-deep);border-radius:20px;height:64px;font-size:1.6rem;font-weight:800;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:0 6px 0 var(--press)}
 .pad-btn.held{transform:translateY(4px);box-shadow:0 2px 0 var(--press)}
 .pad-btn.bomb{color:var(--bad);font-size:1.1rem}
+.pad-btn.laser{color:var(--accent-deep);font-size:1rem}
 .pad-btn.firebtn{color:var(--good);font-size:1.1rem}
 .hint{color:var(--ink-soft);font-size:.9rem;font-weight:600;text-align:center;margin:10px 0 0}
 @media (max-width:620px){.wrap{padding:8px 8px 20px}.stage{height:clamp(380px,calc(100dvh - 150px),760px)}.hint{display:none}}
@@ -163,7 +164,7 @@ body.fs[data-screen=game] .hint,body.fs[data-screen=game] .lane-pad{display:none
   <section id="menu" class="screen">
     <div class="card">
       <h1 class="brand-big">Math Shooters</h1>
-      <p class="lede">Fly into the right answer, shoot the enemies and dodge everything else. Clear the worlds of each sector, grab upgrades between waves, and hold on to them: a hit or a wrong answer knocks one loose.</p>
+      <p class="lede">Fly into the right answer, shoot the enemies and dodge everything else. Clear the worlds of each sector, grab upgrades between waves and keep them for good.</p>
     </div>
     <h2 class="who">Who's playing?</h2>
     <div id="kids" class="profile-grid"></div>
@@ -191,9 +192,10 @@ body.fs[data-screen=game] .hint,body.fs[data-screen=game] .lane-pad{display:none
           <ul>
             <li><b>Catch the answer:</b> the problem is at the top. Fly your ship anywhere on the screen into the bubble with the right answer. A missed bubble floats back up and comes around again.</li>
             <li><b>Shoot the enemies:</b> hold <kbd>Space</kbd> to fire (<kbd>FIRE</kbd> on a touch screen). Every enemy shoots back: crashers fire and then dive at you, saucers circle and shoot, and the tank guards world 6 of every sector. Bullets never pop answer bubbles.</li>
-            <li><b>Upgrades:</b> after each wave pick one of three. <b>Getting hit or catching a wrong answer costs a heart and knocks one upgrade loose</b>: grab the floating capsule to get it back.</li>
-            <li><b>Controls:</b> arrow keys or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> to fly, <kbd>Space</kbd> to shoot, <kbd>B</kbd> for a bomb, <kbd>P</kbd> to pause. On a computer the game goes full screen; <kbd>Esc</kbd> leaves it. On a touch screen drag anywhere to fly and hold FIRE.</li>
-            <li><b>Two players:</b> player 1 flies with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>, shoots with <kbd>F</kbd> and bombs with <kbd>Q</kbd>; player 2 flies with the arrows, shoots with <kbd>.</kbd> and bombs with <kbd>/</kbd>. Rescue a downed partner by flying into their bubble, take turns catching for Teamwork bonuses, and stay close so your beam pops enemy shots.</li>
+            <li><b>Upgrades:</b> after each wave pick one of three. <b>They are yours to keep</b>: they come with you to every world, and getting hit only costs a heart. Your ship shows them off: nose guns, wing pods, a glowing core.</li>
+            <li><b>Laser:</b> it charges over time and faster with right answers. When your ship glows, press left <kbd>Shift</kbd> to burn a beam straight up for two seconds.</li>
+            <li><b>Controls:</b> arrow keys or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> to fly, <kbd>Space</kbd> or left <kbd>Ctrl</kbd> to shoot, left <kbd>Shift</kbd> for the laser, <kbd>B</kbd> for a bomb, <kbd>P</kbd> to pause. On a computer the game goes full screen; <kbd>Esc</kbd> leaves it. On a touch screen drag anywhere to fly and hold FIRE.</li>
+            <li><b>Two players:</b> player 1 flies with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>, shoots with <kbd>F</kbd>, lasers with left <kbd>Shift</kbd> and bombs with <kbd>Q</kbd>; player 2 flies with the arrows, shoots with <kbd>.</kbd> or right <kbd>Ctrl</kbd>, lasers with right <kbd>Shift</kbd> and bombs with <kbd>/</kbd>. Rescue a downed partner by flying into their bubble, take turns catching for Teamwork bonuses, and stay close so your beam pops enemy shots.</li>
             <li><b>The map:</b> each sector is one kind of math and gets harder world by world. Clearing world 3 of a sector opens the next sector. Mixed opens last.</li>
           </ul>
         </div>
@@ -207,7 +209,7 @@ body.fs[data-screen=game] .hint,body.fs[data-screen=game] .lane-pad{display:none
 
   <section id="pick2" class="screen" hidden>
     <div class="topbar2"><button id="pick2Back" class="btn btn-ghost btn-sm" type="button">Back</button><div class="brand">Who is playing with you?</div></div>
-    <div class="card"><div id="kids2" class="profile-grid"></div><p class="lede" style="font-size:.9rem">Player 1 flies with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>, shoots with <kbd>F</kbd> and bombs with <kbd>Q</kbd>. Player 2 flies with the arrow keys, shoots with <kbd>.</kbd> and bombs with <kbd>/</kbd>.</p></div>
+    <div class="card"><div id="kids2" class="profile-grid"></div><p class="lede" style="font-size:.9rem">Player 1 flies with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>, shoots with <kbd>F</kbd>, lasers with left <kbd>Shift</kbd> and bombs with <kbd>Q</kbd>. Player 2 flies with the arrow keys, shoots with <kbd>.</kbd>, lasers with right <kbd>Shift</kbd> and bombs with <kbd>/</kbd>.</p></div>
   </section>
 
   <section id="map" class="screen" hidden>
@@ -219,7 +221,7 @@ body.fs[data-screen=game] .hint,body.fs[data-screen=game] .lane-pad{display:none
     <div id="stage" class="stage">
       <canvas id="cv"></canvas>
       <div class="hud">
-        <div class="hud-l"><div id="hearts"></div><div id="stageLbl" class="hud-small"></div><div class="bar"><i id="progBar"></i></div><button id="bombs" class="hud-small chip" type="button" aria-label="Use a bomb"></button><div id="ups" class="ups"></div></div>
+        <div class="hud-l"><div id="hearts"></div><div id="stageLbl" class="hud-small"></div><div class="bar"><i id="progBar"></i></div><button id="bombs" class="hud-small chip" type="button" aria-label="Use a bomb"></button><button id="special" class="hud-small chip" type="button" aria-label="Fire the laser"></button><div id="ups" class="ups"></div></div>
         <div id="eq" class="eq">Ready?</div>
         <div class="hud-r"><div class="score-box"><div id="score" class="pill score">0</div><div id="topLbl" class="hud-small"></div><div id="combo" class="combo"></div></div><button id="pauseBtn" class="icon-btn" type="button" aria-label="Pause"><svg viewBox="0 0 24 24"><path d="M9 5v14M15 5v14"/></svg></button></div>
       </div>
@@ -238,6 +240,7 @@ body.fs[data-screen=game] .hint,body.fs[data-screen=game] .lane-pad{display:none
       <button id="padR" class="pad-btn" type="button" aria-label="Move right">▶</button>
       <button id="padF" class="pad-btn firebtn" type="button" aria-label="Fire">FIRE</button>
       <button id="padB" class="pad-btn bomb" type="button" aria-label="Bomb">BOMB</button>
+      <button id="padS" class="pad-btn laser" type="button" aria-label="Laser">LASER</button>
     </div>
     <p class="hint" id="gameHint"></p>
   </section>
