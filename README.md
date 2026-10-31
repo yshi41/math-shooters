@@ -8,7 +8,11 @@ and a tank guards world 6 of every sector; hold the fire key to shoot them. Afte
 three upgrades, and **upgrades are kept for good**: they are saved with the kid's profile and carry into every
 world (a hit or a wrong answer only costs a heart). The ship's look shows them: nose guns for Rapid Fire, wing pods
 for Spread Shot, a glowing core for Power Shot, bigger flames for Speedy Fins, a bubble for the shield. The **laser**
-(left Shift) charges over 25 seconds, a quarter per right answer, then burns its column clear for 2 seconds. Progress runs through a **world map**: six sectors (Addition, Subtraction,
+(left Shift) charges over 25 seconds, a quarter per right answer, then burns its column clear for 2 seconds. The
+**Math Hydra** (from wave 2, or wave 1 from world 3; never on the boss wave) carries its own problem on its belly and
+one answer on each arm (3 arms, 4 from world 4). Its armor holds until the arm with the right answer is shot off; the
+body then takes hits (bullets, the laser, a bomb) for 4.5 seconds, until that arm grows back with a new problem. A
+wrong arm just grows back. Its body has 6 + world hearts. Progress runs through a **world map**: six sectors (Addition, Subtraction,
 Times Tables, Multiplication, Division, Mixed), six worlds each, getting harder slowly. World 3 of a sector
 opens the next sector; Mixed opens when world 3 of every other sector is done. Numbers follow the kid's grade
 (Riley 3rd, Charlie and the test player Yan 4th).
@@ -41,7 +45,8 @@ Progress saves online only, through the Worker in `worker/`; nothing is ever kep
 ## Tuning knobs (`src/game.js`)
 
 `WORLD_RAMP` (per-world tier, bubble speed, enemy cap and timing), `MIX_TIERS`, `WAVE_N` (correct answers per
-wave), `LASER_T` and `CHARGE_T` (laser length and recharge), the beam
+wave), `LASER_T` and `CHARGE_T` (laser length and recharge), `HYDRA_OPEN` and `spawnHydra` (the hydra's open window, arms and
+health), the beam
 range and rescue timer in the co-op code, and the number ranges in `MSMath`.
 
 ## Mechanics pass: what is deliberately not here yet

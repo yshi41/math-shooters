@@ -205,6 +205,7 @@ body.fs[data-screen=game] .hint,body.fs[data-screen=game] .lane-pad{display:none
             <li><b>Shoot the enemies:</b> hold <kbd>Space</kbd> to fire (<kbd>FIRE</kbd> on a touch screen). Every enemy shoots back: crashers fire and then dive at you, saucers circle and shoot, and the tank guards world 6 of every sector. Bullets never pop answer bubbles.</li>
             <li><b>Upgrades:</b> after each wave pick one of three. <b>They are yours to keep</b>: they come with you to every world, and getting hit only costs a heart. Your ship shows them off: nose guns, wing pods, a glowing core.</li>
             <li><b>Laser:</b> it charges over time and faster with right answers. When your ship glows, press left <kbd>Shift</kbd> to burn a beam straight up for two seconds.</li>
+            <li><b>Math Hydra:</b> its armor holds until you shoot off the arm with the right answer to the problem on its belly. Then blast the body before the arm grows back with a new problem. Shoot a wrong arm and it just grows back.</li>
             <li><b>Controls:</b> arrow keys or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> to fly, <kbd>Space</kbd> or left <kbd>Ctrl</kbd> to shoot, left <kbd>Shift</kbd> for the laser, <kbd>B</kbd> for a bomb, <kbd>P</kbd> to pause. On a computer the game goes full screen; <kbd>Esc</kbd> leaves it. On a touch screen drag anywhere to fly and hold FIRE.</li>
             <li><b>Two players:</b> player 1 flies with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>, shoots with <kbd>F</kbd>, lasers with left <kbd>Shift</kbd> and bombs with <kbd>Q</kbd>; player 2 flies with the arrows, shoots with <kbd>.</kbd> or right <kbd>Ctrl</kbd>, lasers with right <kbd>Shift</kbd> and bombs with <kbd>/</kbd>. Rescue a downed partner by flying into their bubble, take turns catching for Teamwork bonuses, and stay close so your beam pops enemy shots.</li>
             <li><b>The map:</b> each sector is one kind of math and gets harder world by world. Clearing world 3 of a sector opens the next sector. Mixed opens last.</li>
@@ -282,7 +283,7 @@ body.fs[data-screen=game] .hint,body.fs[data-screen=game] .lane-pad{display:none
 <script>
 (()=>{
 'use strict';
-const BUILD='2026-10-30.1';
+const BUILD='2026-10-31.1';
 const $=s=>document.querySelector(s);
 const rand=(a,b)=>a+Math.random()*(b-a);
 const ri=n=>Math.floor(Math.random()*n);
@@ -447,6 +448,7 @@ const Snd={ctx:null,on:true,
   special(){for(let i=0;i<6;i++)this.tone(300+i*120,.12,{vol:.12,slide:1600,delay:i*.07});this.noise(.6,{vol:.3,lp:1500,delay:.4})},
   win(){[[72,0,.14],[76,.12,.14],[79,.24,.14],[84,.36,.3],[79,.62,.12],[84,.74,.7]].forEach(([m,d,l])=>{this.tone(this.f(m),l,{type:'triangle',vol:.2,delay:d});this.tone(this.f(m-12),l,{vol:.1,delay:d})})},
   lose(){[[67,0,.3],[66,.32,.3],[65,.64,.3],[64,.96,.9]].forEach(([m,d,l])=>this.tone(this.f(m),l,{type:'triangle',vol:.18,delay:d}))},
+  roar(){this.tone(110,.6,{type:'sawtooth',vol:.12,slide:70,lp:700});this.noise(.5,{vol:.15,lp:500})},
   star(i){this.tone(this.f(79+i*5),.35,{type:'triangle',vol:.2});this.tone(this.f(91+i*5),.25,{vol:.08})}
 };
 
@@ -576,7 +578,7 @@ function startWorld(si,wi){Snd.init();Snd.click();goFull();const s=SECTORS[si],i
   show('game');$('#pauseMenu').hidden=true;$('#upgrade').hidden=true;stage.classList.toggle('wide',ids.length>1);hudCache={};
   G={si,wi,sector:s,id:s.id+'-'+wi,ramp,tier,grade,coop:ids.length>1,ids,players:ids.map((id,i)=>mkPlayer(i,id)),t:0,phase:'intro',phaseAt:2.4,wave:1,waveT:0,correct:0,asked:0,right:0,wrongs:0,score:0,streak:0,bestStreak:0,lastCatcher:-1,team:0,
     bubbles:[],bullets:[],enemies:[],eshots:[],pickups:[],parts:[],rings:[],floats:[],dots:[],q:null,qOpen:false,nextQAt:-1,log:[],missed:[],bag:[],pool:null,poolTop:0,
-    L:Math.max(2,saved-2),warm:Math.max(2,saved),peakL:0,shake:0,flash:0,flashCol:'255,255,255',offer:[],taken:[],pickTurn:0,focus:-1,spawnT:1.5,shooterT:2,tankUp:false,bonusTreats:0,collected:0,glowT:0,paused:false,finished:false,endAt:0,
+    L:Math.max(2,saved-2),warm:Math.max(2,saved),peakL:0,shake:0,flash:0,flashCol:'255,255,255',offer:[],taken:[],pickTurn:0,focus:-1,spawnT:1.5,shooterT:2,hydraT:6,tankUp:false,bonusTreats:0,collected:0,glowT:0,paused:false,finished:false,endAt:0,
     top:p0.best[s.id+'-'+wi]|0,topBeaten:false,slowMul:1,won:false,beam:null,bs:1,cols:5,r:30,shipW:56,shipH:62};
   G.peakL=G.L;sizeStage();
   G.players.forEach((p,i)=>{p.x=G.coop?W*(i?.7:.3):W/2;p.y=H-G.shipH*.9;
@@ -656,7 +658,7 @@ function waveClear(){G.phase='clear';G.phaseAt=G.t+1.8;G.qOpen=false;G.nextQAt=-
   for(const p of G.players){if(p.down||p.out)continue;p.hearts=Math.min(p.maxHearts,p.hearts+1);p.bombs=Math.min(p.maxBombs,p.bombs+1)}
   banner(G.wave<WAVES?`Wave ${G.wave} clear!`:'World clear!',`+${bonus} bonus`);Snd.glow();confetti(G.wave<WAVES?40:140);updateHUD()}
 function afterClear(){if(G.wave<WAVES)openUpgrade();else{G.phase='won';G.won=true;G.endAt=G.t+2.4;Snd.win();confetti(120)}}
-function nextWave(){G.wave++;G.correct=0;G.phase='intro';G.phaseAt=G.t+1.6;G.spawnT=1.5;G.shooterT=2;
+function nextWave(){G.wave++;G.correct=0;G.phase='intro';G.phaseAt=G.t+1.6;G.spawnT=1.5;G.shooterT=2;G.hydraT=6;
   for(const p of G.players)if(p.down||p.out){p.down=false;p.out=false;p.hearts=2;p.inv=2}
   banner(`Wave ${G.wave}`,bossWave()?'Boss incoming!':G.wave===WAVES?'Last wave!':'');updateHUD()}
 function openUpgrade(){G.phase='upgrade';G.pickTurn=0;G.taken=[];G.focus=-1;const n=G.coop||G.players[0].perks.includes('p_pick4')?4:3;
@@ -679,6 +681,75 @@ function spawnCrasher(){let x=rand(30,W-30);for(let k=0;k<8&&G.waveT<1&&G.player
   G.enemies.push({kind:'crash',x,y:-24,vx:0,vy:120*G.bs,hp:G.ramp.crashHP,r:18*G.bs,dive:false,tx:x,wob:rand(0,TAU),fireT:rand(.8,1.6),flash:0,score:50})}
 function spawnShooter(){const side=ri(2);G.enemies.push({kind:'shoot',x:side?W+30:-30,y:H*rand(.22,.3),vx:(side?-1:1)*90*G.bs,vy:0,hp:2,r:22*G.bs,fireT:G.ramp.shooter,life:9,flash:0,score:120,inside:false})}
 function spawnTank(){const hp=6+G.si;G.enemies.push({kind:'tank',x:W/2,y:-70,vx:0,vy:40*G.bs,hp,max:hp,r:40*G.bs,fireT:3,flash:0,score:300})}
+/* the Math Hydra: a body on answer arms with its own problem on its belly. Its armor holds until the arm with the right
+   answer is shot off; then the body takes hits until that arm grows back with a new problem. A wrong arm just grows back. */
+const HYDRA_OPEN=4.5,HYDRA_COL='#34d399';
+function hydraOK(){return G.phase==='run'&&!bossWave()&&(G.wave>=2||G.wi>=3)}
+function spawnHydra(){const angs=G.wi>=4?[-1.25,-.42,.42,1.25]:[-1,0,1],hp=6+G.wi;
+  const e={kind:'hydra',x:W/2,y:-90,vy:70*G.bs,r:44*G.bs,home:Math.max(H*.24,140),hp,max:hp,fireT:3,flash:0,score:400,ph:rand(0,TAU),open:0,miss:0,q:null,noteT:0,
+    arms:angs.map(a=>({a,v:0,ok:false,state:'on',g:1,x:W/2,y:-90}))};
+  hydraProblem(e);hydraArms(e);G.enemies.push(e);banner('Math Hydra!','Shoot off the arm with the answer');Snd.roar();return e}
+function hydraProblem(e){const q=MSMath.problem(G.sector.id,G.grade,G.tier,G,PF(G.ids[0]).facts);e.q=q;e.miss=0;
+  const opts=shuffle(MSMath.choices(q,e.arms.length));e.arms.forEach((m,i)=>{m.v=opts[i];m.ok=opts[i]===q.ans})}
+/* where each pod sits: arms sway, and go limp (hanging lower) while the body is open */
+function hydraArms(e){const L=e.r+G.r*1.7;e.arms.forEach((m,i)=>{const limp=m.state==='limp',a=(limp?m.a*.45:m.a)+Math.sin(e.ph*1.6+i*1.7)*.13,len=L*(limp?.8:1);
+  m.x=e.x+Math.sin(a)*len;m.y=e.y+Math.cos(a)*len})}
+function hydraRegrow(e){e.open=0;hydraProblem(e);for(const m of e.arms){m.g=m.state==='gone'?0:.4;m.state='grow'}
+  float('It grew back with a new problem!',e.x,e.y-e.r-24,'#bbf7d0',20);Snd.roar()}
+function updateHydra(e,dt){e.ph+=dt;
+  if(e.y<e.home)e.y=Math.min(e.home,e.y+e.vy*dt);else{const m=e.r+G.r*1.6;e.x=clamp(e.x+Math.cos(e.ph*.5)*W*.12*dt,m,W-m)}
+  for(const m of e.arms)if(m.state==='grow'){m.g=Math.min(1,m.g+dt/.9);if(m.g>=1)m.state='on'}
+  if(e.open>0){e.open-=dt;if(e.open<=0)hydraRegrow(e)}
+  else if(G.phase==='run'&&e.y>=e.home){e.fireT-=dt;if(e.fireT<=0){enemyFire(e);e.fireT=rand(2.8,3.6)}}
+  e.noteT=Math.max(0,e.noteT-dt);hydraArms(e)}
+/* a bullet reaching the hydra: pods first, then the body; true when the bullet is used up */
+function hydraHit(e,b){const pr=G.r*.78;
+  for(const m of e.arms){if(m.state!=='on'||dist(b.x,b.y,m.x,m.y)>pr+5)continue;
+    if(m.ok){m.state='gone';m.g=0;e.open=HYDRA_OPEN;e.flash=.2;for(const o of e.arms)if(o!==m)o.state='limp';
+      const pts=Math.round((100+15*G.wi)*mult()*(G.glowT>0?2:1));G.score+=pts;checkTop();burst(m.x,m.y,30);G.shake=8;
+      float('+'+pts,m.x,m.y-30,'#fff',24);float(`${e.q.text} = ${e.q.ans} · hit the body!`,e.x,e.y-e.r-30,'#bbf7d0',24);Snd.pop(3)}
+    else{m.state='grow';m.g=0;e.miss++;puff(m.x,m.y);float(e.miss>=2?'It grew back! Look for the glow':'Wrong arm: it grew back!',m.x,m.y-30,'#fca5a5',20);Snd.hit()}
+    updateHUD();return true}
+  if(dist(b.x,b.y,e.x,e.y)>e.r+6)return false;
+  if(e.open>0){e.hp-=b.dmg;e.flash=.15;G.parts.push({x:b.x,y:b.y,vx:rand(-60,60),vy:rand(-60,20),life:.3,r:3,col:'#fff',g:0});if(e.hp<=0)killEnemy(e)}
+  else{G.parts.push({x:b.x,y:b.y,vx:rand(-90,90),vy:rand(20,90),life:.25,r:3,col:'#a7f3d0',g:0});if(e.noteT<=0){e.noteT=3;float('Armor! Shoot the arm with the answer',e.x,e.y+e.r+16,'#fff',18)}}
+  return true}
+function drawHydra(c,e,t){const fl=e.flash>0,open=e.open>0,r=e.r,pr=G.r*.78;c.save();c.lineCap='round';
+  /* arms: a tapering tentacle with suckers out to a bulb that carries the number */
+  e.arms.forEach((m,i)=>{if(m.state==='gone')return;const k=m.state==='grow'?.3+.7*m.g:1,tx=e.x+(m.x-e.x)*k,ty=e.y+(m.y-e.y)*k;
+    const x0=e.x+(tx-e.x)*.2,y0=e.y+(ty-e.y)*.2,wig=Math.sin(t*3+i*2)*12,mx=e.x+(tx-e.x)*.55+wig,my=e.y+(ty-e.y)*.55-wig*.3;
+    c.globalAlpha=m.state==='limp'?.45:1;
+    const path=()=>{c.beginPath();c.moveTo(x0,y0);c.quadraticCurveTo(mx,my,tx,ty)};
+    path();c.strokeStyle=shade(HYDRA_COL,-.6);c.lineWidth=r*.42;c.stroke();
+    path();c.strokeStyle=fl?'#fff':shade(HYDRA_COL,-.15);c.lineWidth=r*.28;c.stroke();
+    c.fillStyle=shade(HYDRA_COL,.55,.85);for(let s=1;s<=3;s++){const u=.25+s*.17,v=1-u;dot(c,v*v*x0+2*v*u*mx+u*u*tx,v*v*y0+2*v*u*my+u*u*ty,r*.055)}
+    const rr=pr*(m.state==='grow'?Math.max(.15,m.g):1);
+    if(m.ok&&e.miss>=2&&m.state==='on'){c.strokeStyle='rgba(255,255,255,.95)';c.lineWidth=3;c.beginPath();c.arc(tx,ty,rr*1.3*(1+Math.sin(t*8)*.08),0,TAU);c.stroke()}
+    const g=c.createRadialGradient(tx-rr*.35,ty-rr*.4,rr*.1,tx,ty,rr);g.addColorStop(0,'#fff');g.addColorStop(.45,'#d9f99d');g.addColorStop(1,'#15803d');c.fillStyle=g;dot(c,tx,ty,rr);
+    c.strokeStyle='rgba(255,255,255,.9)';c.lineWidth=2;c.beginPath();c.arc(tx,ty,rr,0,TAU);c.stroke();
+    if(rr>pr*.6){const txt=String(m.v),fs=Math.max(12,rr*(txt.length>3?.6:txt.length>2?.75:.92));c.font=cfont(fs);c.textAlign='center';c.textBaseline='middle';
+      c.lineWidth=Math.max(3,fs*.16);c.strokeStyle='rgba(20,40,30,.85)';c.strokeText(txt,tx,ty+rr*.04);c.fillStyle='#fff';c.fillText(txt,tx,ty+rr*.04)}});
+  c.globalAlpha=1;c.translate(e.x,e.y);
+  /* body: a spiky crest, a wobbling blob, eyes that follow your ship (dizzy while open), the problem on its belly */
+  c.fillStyle=shade(HYDRA_COL,-.55);for(let i=-3;i<=3;i++){const a=-Math.PI/2+i*.33;c.beginPath();c.moveTo(Math.cos(a-.13)*r*.85,Math.sin(a-.13)*r*.85);
+    c.lineTo(Math.cos(a)*r*(1.32+.06*Math.sin(t*5+i)),Math.sin(a)*r*(1.32+.06*Math.sin(t*5+i)));c.lineTo(Math.cos(a+.13)*r*.85,Math.sin(a+.13)*r*.85);c.fill()}
+  const bg=c.createRadialGradient(-r*.3,-r*.4,r*.1,0,0,r*1.1);bg.addColorStop(0,fl?'#fff':shade(HYDRA_COL,.35));bg.addColorStop(1,fl?'#fff':shade(HYDRA_COL,-.5));
+  c.fillStyle=bg;c.beginPath();for(let i=0;i<=24;i++){const a=i/24*TAU,w=r*(1+.04*Math.sin(t*4+i*1.3));c.lineTo(Math.cos(a)*w*1.06,Math.sin(a)*w*.94)}c.closePath();c.fill();
+  if(open){const k=e.open/HYDRA_OPEN,cg=c.createRadialGradient(0,r*.15,2,0,r*.15,r*.8);cg.addColorStop(0,'rgba(255,250,200,.95)');cg.addColorStop(1,'rgba(253,224,71,0)');c.fillStyle=cg;dot(c,0,r*.15,r*.8);
+    c.strokeStyle='rgba(253,224,71,.9)';c.lineWidth=5;c.beginPath();c.arc(0,0,r*1.18,-Math.PI/2,-Math.PI/2+TAU*k);c.stroke()}
+  else{c.strokeStyle=shade(HYDRA_COL,-.45,.8);c.lineWidth=3;for(let i=0;i<3;i++){c.beginPath();c.arc(0,r*(.05+i*.22),r*(.62-i*.1),.25*Math.PI,.75*Math.PI);c.stroke()}}
+  const p=nearestShip(e.x,e.y),la=p?Math.atan2(p.y-e.y,p.x-e.x):Math.PI/2;
+  for(const s of [-1,1]){const ex=s*r*.36,ey=-r*.32;c.fillStyle='#fff';dot(c,ex,ey,r*.2);
+    if(open){c.strokeStyle='#1f2937';c.lineWidth=2.5;c.beginPath();for(let a=0;a<4*Math.PI;a+=.4){const rr=a/(4*Math.PI)*r*.15;c.lineTo(ex+Math.cos(a+t*8)*rr,ey+Math.sin(a+t*8)*rr)}c.stroke()}
+    else{c.fillStyle='#1f2937';dot(c,ex+Math.cos(la)*r*.07,ey+Math.sin(la)*r*.07,r*.1);c.fillStyle='#fff';dot(c,ex+Math.cos(la)*r*.07-r*.03,ey+Math.sin(la)*r*.07-r*.03,r*.03)}}
+  const w=r*2,bx=-w/2,by=-r*1.32-16;c.fillStyle='rgba(0,0,0,.4)';c.beginPath();c.roundRect(bx-2,by-2,w+4,12,6);c.fill();
+  c.fillStyle=e.hp/e.max>.5?'#22c55e':e.hp/e.max>.25?'#f5c842':'#ef4444';c.beginPath();c.roundRect(bx,by,w*Math.max(0,e.hp)/e.max,8,4);c.fill();
+  c.restore()}
+/* the hydra's problem goes on its belly, drawn over the answer bubbles so it stays readable */
+function hydraLabel(c,e){const open=e.open>0,r=e.r,txt=open?`${e.q.text} = ${e.q.ans}`:`${e.q.text} = ?`,fs=Math.max(16,r*.42);c.save();c.translate(e.x,e.y);
+  c.font=cfont(fs);c.textAlign='center';c.textBaseline='middle';const tw=c.measureText(txt).width+fs*.9;
+  c.fillStyle=open?'rgba(21,128,61,.92)':'rgba(15,23,42,.86)';c.beginPath();c.roundRect(-tw/2,r*.32-fs*.72,tw,fs*1.44,fs*.5);c.fill();
+  c.strokeStyle='rgba(255,255,255,.85)';c.lineWidth=2;c.stroke();c.fillStyle='#fff';c.fillText(txt,0,r*.32+fs*.04);c.restore()}
 function fireEshot(e,ang,sp){G.eshots.push({x:e.x,y:e.y+e.r*.6,vx:Math.sin(ang)*sp,vy:Math.cos(ang)*sp,r:7})}
 function enemyFire(e){const sp=220*G.bs;
   if(e.kind==='tank'){for(const a of [-.44,0,.44])fireEshot(e,a,sp)}
@@ -686,9 +757,11 @@ function enemyFire(e){const sp=220*G.bs;
   Snd.shoot()}
 function updateEnemies(dt){const cap=Math.min(6,G.ramp.cap+(G.wave-1));
   if(G.phase==='run'){G.spawnT-=dt;if(G.spawnT<=0&&G.enemies.filter(e=>e.kind==='crash'&&!e.flee).length<cap){spawnCrasher();G.spawnT=G.ramp.crash*(G.grade===3?1.15:1)*rand(.8,1.2)}
-    if(G.ramp.shooter>0){G.shooterT-=dt;if(G.shooterT<=0&&!G.enemies.some(e=>e.kind==='shoot'&&!e.flee)){spawnShooter();G.shooterT=Math.max(3,6-.5*G.wi)}}}
+    if(G.ramp.shooter>0){G.shooterT-=dt;if(G.shooterT<=0&&!G.enemies.some(e=>e.kind==='shoot'&&!e.flee)){spawnShooter();G.shooterT=Math.max(3,6-.5*G.wi)}}
+    if(hydraOK()&&!G.enemies.some(e=>e.kind==='hydra'&&!e.flee)){G.hydraT-=dt;if(G.hydraT<=0){spawnHydra();G.hydraT=14}}}
   for(const e of G.enemies){e.flash=Math.max(0,e.flash-dt);
-    if(e.flee){e.y-=400*dt;continue}
+    if(e.flee){e.y-=400*dt;if(e.kind==='hydra')hydraArms(e);continue}
+    if(e.kind==='hydra'){updateHydra(e,dt);continue}
     if(e.kind==='crash'){e.wob+=dt*3;
       if(!e.dive){e.x+=Math.sin(e.wob)*40*dt;e.y+=e.vy*dt;if(G.phase==='run'&&e.y>0){e.fireT-=dt;if(e.fireT<=0){enemyFire(e);e.fireT=rand(2,3)}}if(e.y>H*.55){e.dive=true;const p=nearestShip(e.x,e.y);e.tx=p?p.x:e.x}}
       else{e.vx+=(clamp((e.tx-e.x)*3,-260*G.bs,260*G.bs)-e.vx)*Math.min(1,dt*4);e.x+=e.vx*dt;e.vy+=240*dt;e.y+=e.vy*dt}}
@@ -696,14 +769,15 @@ function updateEnemies(dt){const cap=Math.min(6,G.ramp.cap+(G.wave-1));
       e.life-=dt;if(e.life<=0)e.y-=200*dt;else if(G.phase==='run'){e.fireT-=dt;if(e.fireT<=0){enemyFire(e);e.fireT=G.ramp.shooter*rand(.85,1.15)}}}
     else{if(e.y<H*.26)e.y+=e.vy*dt;else{e.x=clamp(e.x+Math.sin(G.t*.7)*30*dt,e.r,W-e.r);if(G.phase==='run'){e.fireT-=dt;if(e.fireT<=0){enemyFire(e);e.fireT=3}}}}}
   G.enemies=G.enemies.filter(e=>e.hp>0&&e.y<H+60&&e.y>-130)}
-function killEnemy(e){if(e.dead)return;e.dead=true;e.hp=0;burst(e.x,e.y,e.kind==='tank'?70:24);const pts=e.score*mult();G.score+=pts;checkTop();float('+'+pts,e.x,e.y-30,'#fff',22);Snd.hit();
-  if(e.kind==='tank'){G.pickups.push({kind:'heart',x:e.x,y:e.y,vy:80});for(let i=0;i<4;i++)G.pickups.push({kind:'treat',x:e.x+rand(-30,30),y:e.y+rand(-10,10),vy:110*G.bs});G.shake=16;banner('Tank down!');if(G.correct>=WAVE_N&&G.phase==='run')waveClear()}
+function killEnemy(e){if(e.dead)return;e.dead=true;e.hp=0;burst(e.x,e.y,e.kind==='crash'||e.kind==='shoot'?24:70);const pts=e.score*mult();G.score+=pts;checkTop();float('+'+pts,e.x,e.y-30,'#fff',22);Snd.hit();
+  if(e.kind==='tank'||e.kind==='hydra'){G.pickups.push({kind:'heart',x:e.x,y:e.y,vy:80});for(let i=0;i<4;i++)G.pickups.push({kind:'treat',x:e.x+rand(-30,30),y:e.y+rand(-10,10),vy:110*G.bs});G.shake=16;
+    if(e.kind==='hydra'){for(const m of e.arms)if(m.state!=='gone')puff(m.x,m.y);banner('Hydra down!');Snd.win()}else{banner('Tank down!');if(G.correct>=WAVE_N&&G.phase==='run')waveClear()}}
   else rollDrop(e)}
 function rollDrop(e){const lucky=Math.max(...G.players.map(p=>p.lucky));const needHeart=G.players.some(p=>!p.down&&!p.out&&p.hearts<p.maxHearts);
   if(needHeart&&Math.random()<.12+.06*lucky)G.pickups.push({kind:'heart',x:e.x,y:e.y,vy:80});
   else if(Math.random()<.6+.2*lucky){const n=1+ri(3);for(let i=0;i<n;i++)G.pickups.push({kind:'treat',x:e.x+rand(-16,16),y:e.y+rand(-8,8),vy:110*G.bs})}}
 function useBomb(p){if(!G||G.paused||G.phase!=='run'||p.down||p.out||p.bombs<=0)return;p.bombs--;
-  for(const e of G.enemies){if(e.flee||e.hp<=0)continue;if(e.kind==='tank'){e.hp-=3;e.flash=.3;if(e.hp<=0)killEnemy(e)}else killEnemy(e)}
+  for(const e of G.enemies){if(e.flee||e.hp<=0)continue;if(e.kind==='tank'){e.hp-=3;e.flash=.3;if(e.hp<=0)killEnemy(e)}else if(e.kind==='hydra'){e.flash=.3;if(e.open>0){e.hp-=4;if(e.hp<=0)killEnemy(e)}}else killEnemy(e)}
   G.eshots=[];G.flash=.5;G.flashCol='255,255,255';G.shake=20;Snd.special();banner('BOOM!');updateHUD()}
 /* the laser (left Shift): charges over time and with right answers, then burns its column clear for two seconds */
 function addCharge(p,n){if(p.charge>=1)return;const seg=Math.floor(p.charge*5);p.charge=Math.min(1,p.charge+n);
@@ -717,7 +791,7 @@ function updateLaser(p,dt){p.muzzle=Math.max(0,p.muzzle-dt);
   G.eshots=G.eshots.filter(s=>!(Math.abs(s.x-p.x)<hw+s.r&&s.y<top+10));
   if(Math.random()<.6)G.parts.push({x:p.x+rand(-hw,hw),y:rand(0,top),vx:rand(-90,90),vy:rand(-90,90),life:rand(.2,.4),r:rand(2,4),col:Math.random()<.5?'#fff':p.col,g:0});
   if(p.laserT<=0){p.laserT=.1;for(const e of G.enemies){if(e.flee||e.hp<=0||e.y<-10||e.y>top+e.r||Math.abs(e.x-p.x)>hw+e.r)continue;
-    if(e.kind==='tank'){e.hp-=.5;e.flash=.08;if(e.hp<=0)killEnemy(e)}else killEnemy(e)}}
+    if(e.kind==='tank'||e.kind==='hydra'){if(e.kind==='hydra'&&!(e.open>0))continue;e.hp-=.5;e.flash=.08;if(e.hp<=0)killEnemy(e)}else killEnemy(e)}}
   if(p.laser<=0)updateHUD()}
 
 /* ships, bullets and everything that touches them */
@@ -745,7 +819,7 @@ function shoot(p){const dmg=1+(p.up.power|0),sp=760*G.bs,angs=[0],s=p.up.spread|
 function segDist(px,py,x1,y1,x2,y2){const dx=x2-x1,dy=y2-y1,l2=dx*dx+dy*dy||1;const t=clamp(((px-x1)*dx+(py-y1)*dy)/l2,0,1);return dist(px,py,x1+dx*t,y1+dy*t)}
 function updateCombat(dt){const alive=shipsAlive(),rx=G.shipW*.3;
   for(const b of G.bullets){b.x+=b.vx*dt;b.y+=b.vy*dt;if(b.y<-20||b.x<-20||b.x>W+20){b.dead=true;continue}
-    for(const e of G.enemies){if(e.flee||e.hp<=0||e.y<-10)continue;if(dist(b.x,b.y,e.x,e.y)<e.r+6){e.hp-=b.dmg;e.flash=.15;b.dead=true;G.parts.push({x:b.x,y:b.y,vx:rand(-60,60),vy:rand(-60,20),life:.3,r:3,col:'#fff',g:0});if(e.hp<=0)killEnemy(e);break}}}
+    for(const e of G.enemies){if(e.flee||e.hp<=0||e.y<-10)continue;if(e.kind==='hydra'){if(hydraHit(e,b)){b.dead=true;break}continue}if(dist(b.x,b.y,e.x,e.y)<e.r+6){e.hp-=b.dmg;e.flash=.15;b.dead=true;G.parts.push({x:b.x,y:b.y,vx:rand(-60,60),vy:rand(-60,20),life:.3,r:3,col:'#fff',g:0});if(e.hp<=0)killEnemy(e);break}}}
   G.bullets=G.bullets.filter(b=>!b.dead);
   for(const e of G.enemies){if(e.flee||e.hp<=0)continue;for(const p of alive)if(dist(e.x,e.y,p.x,p.y)<e.r+rx){hitPlayer(p);if(e.kind==='crash'){e.hp=0;puff(e.x,e.y)}}}
   G.beam=(G.coop&&alive.length===2&&dist(alive[0].x,alive[0].y,alive[1].x,alive[1].y)<220*G.bs)?alive:null;
@@ -864,7 +938,7 @@ function drawLaser(c,p,t){const bot=p.y-G.shipH*.45,hw=G.shipW*(.3+.05*Math.sin(
   c.fillStyle=g;c.fillRect(p.x-hw*1.8,0,hw*3.6,bot);c.fillStyle='rgba(255,255,255,.9)';c.fillRect(p.x-hw*.25,0,hw*.5,bot);
   const r=G.shipW*.55,ng=c.createRadialGradient(p.x,bot,0,p.x,bot,r);ng.addColorStop(0,'rgba(255,255,255,.95)');ng.addColorStop(1,shade(p.col,0,0));c.fillStyle=ng;dot(c,p.x,bot,r);
   c.restore()}
-function drawEnemy(c,e,t){c.save();c.translate(e.x,e.y);const fl=e.flash>0;
+function drawEnemy(c,e,t){if(e.kind==='hydra')return drawHydra(c,e,t);c.save();c.translate(e.x,e.y);const fl=e.flash>0;
   if(e.kind==='crash'){c.rotate(t*2);c.fillStyle=fl?'#fff':'#ef4444';c.beginPath();for(let i=0;i<16;i++){const a=i/16*TAU,rr=i%2?e.r:e.r*.7;c.lineTo(Math.cos(a)*rr,Math.sin(a)*rr)}c.closePath();c.fill();
     c.fillStyle='#fff';dot(c,-e.r*.25,-e.r*.1,e.r*.16);dot(c,e.r*.25,-e.r*.1,e.r*.16);c.fillStyle='#1f2937';dot(c,-e.r*.25,-e.r*.05,e.r*.08);dot(c,e.r*.25,-e.r*.05,e.r*.08)}
   else if(e.kind==='shoot'){c.fillStyle=fl?'#fff':'#a78bfa';ell(c,0,0,e.r,e.r*.45);c.fill();c.fillStyle=fl?'#fff':'#ddd6fe';ell(c,0,-e.r*.3,e.r*.5,e.r*.4);c.fill();c.fillStyle='#fde68a';for(let i=-1;i<=1;i++)dot(c,i*e.r*.5,e.r*.15,3+(Math.floor(t*4+i)&1))}
@@ -880,6 +954,7 @@ function draw(){const c=cx,t=G.t;c.setTransform(DPR(),0,0,DPR(),0,0);c.clearRect
   for(const k of G.pickups){if(k.kind==='heart'){c.fillStyle='#f87171';heartPath(c,k.x,k.y,10);c.fill()}else{c.fillStyle='#fde68a';dot(c,k.x,k.y,8);c.fillStyle='#f59e0b';dot(c,k.x,k.y,4)}}
   if(G.beam){c.save();c.strokeStyle='rgba(125,211,252,.7)';c.lineWidth=4;c.setLineDash([8,8]);c.lineDashOffset=-t*60;c.beginPath();c.moveTo(G.beam[0].x,G.beam[0].y);c.lineTo(G.beam[1].x,G.beam[1].y);c.stroke();c.restore()}
   for(const b of G.bubbles)drawToken(c,b,t);
+  for(const e of G.enemies)if(e.kind==='hydra')hydraLabel(c,e);
   for(const p of G.players)if(p.laser>0&&!p.down&&!p.out)drawLaser(c,p,t);
   for(const p of G.players)drawShip(c,p,t);
   for(const p of G.parts){c.globalAlpha=clamp(p.life*1.6,0,1);c.fillStyle=p.col;
@@ -995,7 +1070,7 @@ renderMenu();renderSaveNote();requestAnimationFrame(frame);
   }catch(e){clearTimeout(fallback);db=null;setReady('off')}
 })();
 window.__ms={get G(){return G},normalize,get saves(){return saves},net:Net,cloud:CLOUD,MSMath,BUILD,SECTORS,WORLD_RAMP,UPGRADES,PERKS,
-  input(i,h){if(G&&G.players[i]){Object.assign(G.players[i].held,h);G.players[i].target=null}},pickUp,useBomb,useSpecial,startWorld,setCoop(ids){coopIds=ids},player:()=>player,P:()=>P(),buyPerk:id=>buyPerk(PERKS[id]),worldOpen:(si,wi)=>worldOpen(P(),si,wi)};
+  input(i,h){if(G&&G.players[i]){Object.assign(G.players[i].held,h);G.players[i].target=null}},pickUp,useBomb,useSpecial,spawnHydra,hydraHit,startWorld,setCoop(ids){coopIds=ids},player:()=>player,P:()=>P(),buyPerk:id=>buyPerk(PERKS[id]),worldOpen:(si,wi)=>worldOpen(P(),si,wi)};
 if(CLOUD&&location.protocol.startsWith('http'))setTimeout(()=>{fetch(location.pathname,{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD='([^']+)'/);if(m&&m[1]!==BUILD&&!location.search.includes('v='+m[1]))location.replace(location.pathname+'?v='+m[1])}).catch(()=>{})},1500);
 })();
 

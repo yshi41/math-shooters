@@ -132,6 +132,28 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
   let s = await snap(p);
   check(s && s.players[0].bombs >= 2 && s.players[0].hearts >= 6, 'the next world starts with the perks: 2+ bombs and 6+ hearts');
   check(s && s.players[0].lv === savedLv, 'the next world starts with the saved upgrades (' + s.players[0].lv + ' of ' + savedLv + ' levels)');
+  /* the Math Hydra: its armor holds until the right arm is shot off, a wrong arm grows back, the body takes hits while open */
+  await until(() => p.evaluate(() => window.__ms.G && window.__ms.G.phase === 'run'), 6000);
+  const hy = await p.evaluate(async () => { const ms = window.__ms, G = ms.G, sl = t => new Promise(r => setTimeout(r, t));
+    for (const q of G.players) { q.maxHearts = q.hearts = 20; } G.correct = -50; /* keep the wave from clearing mid-check */
+    const e = ms.spawnHydra(); e.y = e.home; await sl(150);
+    const shot = (x, y) => ms.hydraHit(e, { x, y, dmg: 1 });
+    const out = { arms: e.arms.length, oneRight: e.arms.filter(m => m.ok).length === 1 && e.arms.some(m => m.ok && m.v === e.q.ans) };
+    const hp0 = e.hp; shot(e.x, e.y); out.armored = e.hp === hp0 && !(e.open > 0);
+    const wrong = e.arms.find(m => !m.ok), wv = wrong.v; shot(wrong.x, wrong.y); out.wrongGone = wrong.state === 'grow' && !(e.open > 0) && e.hp === hp0;
+    await sl(1300); out.wrongBack = wrong.state === 'on' && wrong.v === wv;
+    const right = e.arms.find(m => m.ok), q0 = e.q; shot(right.x, right.y); out.open = e.open > 0 && right.state === 'gone';
+    shot(e.x, e.y); out.bodyHit = e.hp === hp0 - 1;
+    await sl(6000); out.regrown = !(e.open > 0) && e.arms.every(m => m.state === 'on') && e.arms.filter(m => m.ok).length === 1 && e.q !== q0 && e.arms.some(m => m.ok && m.v === e.q.ans);
+    for (let k = 0; k < 60 && !e.dead; k++) { const r = e.arms.find(m => m.ok); if (r.state === 'on') shot(r.x, r.y); shot(e.x, e.y); await sl(30); }
+    await sl(150); out.killed = e.dead === true && !G.enemies.includes(e);
+    return out; });
+  check(hy.arms === 3 && hy.oneRight, 'a hydra spawns with 3 arms and exactly one right answer ' + JSON.stringify(hy));
+  check(hy.armored, 'the hydra body is armored before the right arm is shot');
+  check(hy.wrongGone && hy.wrongBack, 'a wrong arm comes off and grows back with the same number');
+  check(hy.open && hy.bodyHit, 'shooting the right arm opens the body and the body takes damage');
+  check(hy.regrown, 'the arm grows back with a new problem');
+  check(hy.killed, 'enough body damage kills the hydra');
   await p.keyboard.press('p'); await wait(150);
   check(await p.evaluate(() => !document.querySelector('#pauseMenu').hidden && window.__ms.G.paused), 'P pauses');
   await p.click('#quitBtn'); await wait(300);
