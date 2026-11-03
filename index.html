@@ -110,6 +110,12 @@ kbd{font:inherit;font-weight:800;background:var(--surface-2);border:1px solid va
 .medal em{font-style:normal;font-size:.7rem;background:var(--good);color:#fff;border-radius:99px;padding:1px 7px;margin-left:2px;animation:wig 1s ease-in-out infinite}
 .wbtn .md{display:flex;gap:2px}.wbtn .md i{font-style:normal;font-size:.62rem;opacity:.22;color:#b45309}.wbtn .md i.on{opacity:1}
 .md-ic{font-size:.9em}
+.mission{padding:8px 0;border-top:1px solid var(--line)}.mission:first-child{border-top:0}
+.m-top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.m-top b{font-size:.95rem}.m-top span{font-weight:800;color:var(--ink-soft);white-space:nowrap}
+.m-bar{height:8px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin:5px 0 2px}.m-bar i{display:block;height:100%;background:var(--accent);border-radius:inherit}
+.mission small{font-size:.75rem;font-weight:700;color:var(--ink-soft)}
+.m-done{font-size:.8rem;font-weight:700;color:var(--ink-soft);margin-left:6px}
+.chip-done{display:inline-block;font-weight:800;background:#dcfce7;border:2px solid var(--good);border-radius:14px;padding:3px 12px}
 .eq{grid-area:eq;font-size:clamp(1.7rem,6vw,2.8rem);font-weight:800;padding:.1em .55em .14em;border-radius:20px;background:#fff;color:var(--ink);border:3px solid var(--line);white-space:nowrap;font-variant-numeric:tabular-nums;box-shadow:var(--shadow)}
 .eq .x{color:var(--accent)}.eq .ans{display:inline-block;color:var(--accent-deep)}
 .eq.wait .ans{animation:qBob 1.1s ease-in-out infinite}
@@ -209,6 +215,7 @@ body.fs[data-screen=game] .hint,body.fs[data-screen=game] .lane-pad{display:none
           <div class="play-btns">
             <button id="playBtn" class="btn btn-big" type="button">Play</button>
             <button id="coopBtn" class="btn btn-ghost btn-big" type="button">Play together<small>2 players, one keyboard</small></button>
+            <button id="endlessBtn" class="btn btn-ghost btn-big" type="button" hidden>Endless<small id="endlessBest">How far can you get?</small></button>
           </div>
         </div>
         <div class="card how">
@@ -225,10 +232,12 @@ body.fs[data-screen=game] .hint,body.fs[data-screen=game] .lane-pad{display:none
             <li><b>Controls:</b> arrow keys or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> to fly, <kbd>Space</kbd> or left <kbd>Ctrl</kbd> to shoot, left <kbd>Shift</kbd> for the laser, <kbd>B</kbd> for a bomb, <kbd>P</kbd> to pause. On a computer the game goes full screen; <kbd>Esc</kbd> leaves it. On a touch screen drag anywhere to fly.</li>
             <li><b>Two players:</b> player 1 flies with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>, shoots with <kbd>F</kbd>, lasers with left <kbd>Shift</kbd> and bombs with <kbd>Q</kbd>; player 2 flies with the arrows, shoots with <kbd>.</kbd> or right <kbd>Ctrl</kbd>, lasers with right <kbd>Shift</kbd> and bombs with <kbd>/</kbd>. Rescue a downed partner by flying into their bubble, take turns catching for Teamwork bonuses, and stay close so your beam pops enemy shots.</li>
             <li><b>The map:</b> each sector is one kind of math and gets harder world by world. Clearing world 3 of a sector opens the next sector. Mixed opens last.</li>
+            <li><b>Missions and Endless:</b> three missions wait on this page; each pays treats and the next slides in when one is done. Clear any world 3 to open <b>Endless</b>: mixed problems, waves that never stop, a boss every fourth wave and a Blitz every fifth. How far can you get?</li>
           </ul>
         </div>
       </div>
       <div>
+        <div class="card"><h3>Missions <small id="missionsDone" class="m-done"></small></h3><p class="lede" style="margin:0 0 8px;font-size:.9rem">Three at a time. Finish one and the next slides in.</p><div id="missions"></div></div>
         <div class="card"><h3>Store</h3><p class="lede" style="margin:0 0 8px;font-size:.9rem">Perks are yours for good. Treats come from every world you play.</p><div id="store"></div></div>
         <div class="card"><h3>Settings</h3><div class="toggles"><button id="tSound" class="tog" type="button" aria-pressed="true">Sounds</button><button id="tAuto" class="tog" type="button" aria-pressed="true">Auto-fire</button></div></div>
       </div>
@@ -288,6 +297,7 @@ body.fs[data-screen=game] .hint,body.fs[data-screen=game] .lane-pad{display:none
       </div>
       <p id="resTeam" class="res-sub"></p>
       <p id="resExtra" class="res-sub"></p>
+      <div id="resMissions" class="chips"></div>
       <div id="practice"></div>
       <div class="row" style="justify-content:center;margin-top:8px">
         <button id="againBtn" class="btn btn-big" type="button">Play again</button>
@@ -301,7 +311,7 @@ body.fs[data-screen=game] .hint,body.fs[data-screen=game] .lane-pad{display:none
 <script>
 (()=>{
 'use strict';
-const BUILD='2026-11-03.1';
+const BUILD='2026-11-03.2';
 const $=s=>document.querySelector(s);
 const rand=(a,b)=>a+Math.random()*(b-a);
 const ri=n=>Math.floor(Math.random()*n);
@@ -326,6 +336,37 @@ const SECTORS=[
   {id:'div',name:'Division',sym:'÷',blurb:{3:'From 25 ÷ 5 up to 300 ÷ 10',4:'From 50 ÷ 5 up to 900 ÷ 9'},bg:['#0f2416','#1b3d27']},
   {id:'mix',name:'Mixed',sym:'✦',blurb:{3:'Everything at once',4:'Everything at once'},bg:['#141538','#262a63']}];
 const WORLDS_PER=6;
+/* Endless: not on the map; waves keep coming, faster each time, a boss every 4th wave, a Blitz every 5th */
+const ENDLESS={id:'endless',name:'Endless',sym:'∞',blurb:{3:'Wave after wave, faster and faster',4:'Wave after wave, faster and faster'},bg:['#1c1c28','#33334a']};
+function endlessRamp(w){return {tier:Math.min(5,2+.3*(w-1)),speed:112+4*(w-1),cap:Math.min(6,3+Math.floor((w-1)/3)),crash:Math.max(1.6,2.6-.1*(w-1)),shooter:Math.max(1.2,1.8-.05*(w-1)),aim:true,crashHP:w>=4?2:1,tank:true}}
+/* missions (Jetpack Joyride style): three at a time on the hub, each pays treats, the next one slides in when one is done.
+   stat names the run counter it adds up; the order is the kid's sequence so two devices agree */
+const MISSIONS=[
+  {id:'catch25',name:'Catch 25 answers',n:25,stat:'catches',pay:30},
+  {id:'rescue5',name:'Rescue 5 astronauts',n:5,stat:'rescues',pay:40},
+  {id:'caps6',name:'Grab 6 power-ups',n:6,stat:'caps',pay:30},
+  {id:'kills60',name:'Shoot down 60 enemies',n:60,stat:'kills',pay:40},
+  {id:'clear3',name:'Clear 3 worlds',n:3,stat:'wins',pay:40},
+  {id:'hydra2',name:'Pop 2 Math Hydras',n:2,stat:'hydras',pay:50},
+  {id:'untouched1',name:'Clear a world without losing a heart',n:1,stat:'untouched',pay:60},
+  {id:'bees20',name:'Swat 20 bees',n:20,stat:'bees',pay:30},
+  {id:'chain4',name:'Get a ×4 chain',n:1,stat:'chain4',pay:40},
+  {id:'snatch3',name:'Shoot down 3 Snatchers',n:3,stat:'snatchers',pay:40},
+  {id:'blitz1',name:'Finish a Blitz perfect',n:1,stat:'blitzPerfect',pay:50},
+  {id:'sub1',name:'Clear a Subtraction world',n:1,stat:'sector:sub',pay:40},
+  {id:'rocks15',name:'Break 15 asteroids',n:15,stat:'rocks',pay:30},
+  {id:'streak8',name:'Get 8 right in a row',n:1,stat:'streak8',pay:40},
+  {id:'laser5',name:'Fire the laser 5 times',n:5,stat:'lasers',pay:30},
+  {id:'treats40',name:'Collect 40 treats in play',n:40,stat:'collected',pay:30},
+  {id:'perfect1',name:'Clear a world with every answer right',n:1,stat:'perfect',pay:60},
+  {id:'tables1',name:'Clear a Times Tables world',n:1,stat:'sector:tables',pay:40},
+  {id:'bomb3',name:'Use 3 bombs',n:3,stat:'bombs',pay:20},
+  {id:'boss1',name:'Beat a boss',n:1,stat:'boss',pay:80},
+  {id:'catch60',name:'Catch 60 answers',n:60,stat:'catches',pay:60},
+  {id:'endless5',name:'Reach wave 5 in Endless',n:1,stat:'endless5',pay:80},
+  {id:'rescue10',name:'Rescue 10 astronauts',n:10,stat:'rescues',pay:70},
+  {id:'caps15',name:'Grab 15 power-ups',n:15,stat:'caps',pay:60}];
+const MISSION_BY={};MISSIONS.forEach(m=>MISSION_BY[m.id]=m);
 /* the four medals a world can give (Sky Force style): shown on the map, +10 treats the first time each is earned */
 const MEDALS={p:{name:'Perfect',ic:'✓',blurb:'every answer right'},u:{name:'Untouched',ic:'♥',blurb:'never hit'},r:{name:'Rescuer',ic:'☺',blurb:'all 3 astronauts'},b:{name:'Blitz',ic:'⚡',blurb:'a perfect bonus round'}};
 const MEDAL_IDS=['p','u','r','b'];
@@ -498,11 +539,12 @@ const Snd={ctx:null,on:true,
 /* ---------- saves (online only) ---------- */
 let screen='menu',ready=false,saveMode='loading';
 const saves={};let player=null,coopIds=null;
-function blank(){return {cur:0,games:0,stars:{},best:{},skill:{},facts:{},ops:{},medals:{},perks:[],ups:{},autoFire:true,coop:{played:0,wins:0}}}
+function blank(){return {cur:0,games:0,stars:{},best:{},skill:{},facts:{},ops:{},medals:{},perks:[],ups:{},autoFire:true,missions:{active:[],done:0,next:0},coop:{played:0,wins:0}}}
 /* deep copy first: the claude.ai db hands back frozen snapshots, and the end-of-world bookkeeping writes into these objects */
 function normalize(d){const o=isObj(d)?JSON.parse(JSON.stringify(d)):{};const b=blank();b.cur=Math.max(0,o.cur|0);b.games=o.games|0;
   for(const k of ['stars','best','skill','facts','ops','medals'])b[k]=isObj(o[k])?o[k]:{};
   b.autoFire=o.autoFire!==false;
+  const ms=isObj(o.missions)?o.missions:{};b.missions={active:(Array.isArray(ms.active)?ms.active:[]).filter(m=>isObj(m)&&MISSION_BY[m.id]).map(m=>({id:m.id,n:Math.max(0,m.n|0)})).slice(0,3),done:Math.max(0,ms.done|0),next:Math.max(0,ms.next|0)};
   b.perks=Array.isArray(o.perks)?o.perks.filter(x=>PERKS[x]):[];
   if(isObj(o.ups))for(const id of UP_ORDER){const n=Math.min(UPGRADES[id].max,Math.max(0,o.ups[id]|0));if(n)b.ups[id]=n}
   b.coop={played:(isObj(o.coop)&&o.coop.played)|0,wins:(isObj(o.coop)&&o.coop.wins)|0};return b}
@@ -511,6 +553,10 @@ function P(){return PF(player)}
 function kid(id){return KIDS.find(k=>k.id===id)||KIDS[0]}
 function totalStars(p){let s=0;if(p)for(const k in p.stars)s+=p.stars[k]|0;return s}
 function totalMedals(p){let s=0;if(p)for(const k in p.medals)if(p.medals[k])s++;return s}
+/* the kid's three missions, topped up from the pool in order (so a fresh save starts with the first three) */
+function missionsOf(p){const m=p.missions||(p.missions={active:[],done:0,next:0});
+  while(m.active.length<3&&m.active.length<MISSIONS.length){const id=MISSIONS[m.next%MISSIONS.length].id;m.next++;if(!m.active.some(a=>a.id===id))m.active.push({id,n:0})}return m}
+function endlessOpen(p){for(const k in p.stars)if(/-3$/.test(k)&&p.stars[k])return true;return false}
 /* the save service: the Worker named by window.MS_CLOUD (GitHub Pages), otherwise the artifact's db on claude.ai.
    Progress lives only there; nothing is kept in the browser.
    Each save names the revision it started from plus the copy it started from (base), so the service merges saves from two devices itself. */
@@ -572,8 +618,13 @@ function openHub(){show('hub');renderHub()}
 function renderHub(){const p=P(),k=kid(player);$('#hubHello').textContent=`Ready, ${k.name}?`;
   $('#statCur').innerHTML=`${treatSvg} ${p.cur}`;$('#statStars').innerHTML=`${starSvg(true)} ${totalStars(p)}/${SECTORS.length*WORLDS_PER*3}`;
   $('#statMedals').innerHTML=`<span class="md-ic">🏅</span> ${totalMedals(p)}/${SECTORS.length*WORLDS_PER*MEDAL_IDS.length}`;
-  $('#coopBtn').hidden=!canCoop();renderStore();
+  $('#coopBtn').hidden=!canCoop();renderStore();renderMissions();
+  const eo=endlessOpen(p);$('#endlessBtn').hidden=!eo;$('#endlessBest').textContent=p.best['endless-wave']?`Best: wave ${p.best['endless-wave']} · ${(p.best.endless|0).toLocaleString()}`:'How far can you get?';
   $('#tSound').setAttribute('aria-pressed',String(Snd.on));$('#tAuto').setAttribute('aria-pressed',String(p.autoFire!==false))}
+function renderMissions(){const p=P(),m=missionsOf(p),box=$('#missions');box.innerHTML='';
+  m.active.forEach(a=>{const d=MISSION_BY[a.id],k=Math.min(1,a.n/d.n),el=document.createElement('div');el.className='mission';el.dataset.mission=a.id;
+    el.innerHTML=`<div class="m-top"><b>${d.name}</b><span>${treatSvg} ${d.pay}</span></div><div class="m-bar"><i style="width:${Math.round(k*100)}%"></i></div><small>${Math.min(a.n,d.n)} / ${d.n}</small>`;box.append(el)});
+  $('#missionsDone').textContent=m.done?`${m.done} done`:''}
 function renderStore(){const p=P();const box=$('#store');box.innerHTML='';
   PERK_LIST.forEach(pk=>{const own=p.perks.includes(pk.id);const d=document.createElement('div');d.className='perk';d.dataset.perk=pk.id;d.innerHTML=`<div><b>${pk.name}</b><span>${pk.blurb}</span></div>`;
     const b=document.createElement('button');b.type='button';b.className='btn btn-sm'+(own?' btn-ghost':'');
@@ -588,6 +639,7 @@ tog('#tAuto',()=>P().autoFire!==false,setAuto);
 tog('#pAuto',()=>P().autoFire!==false,setAuto);
 $('#switchBtn').onclick=()=>{Snd.click();show('menu');renderMenu()};
 $('#playBtn').onclick=()=>{Snd.init();Snd.click();coopIds=null;openMap()};
+$('#endlessBtn').onclick=()=>{Snd.init();Snd.click();coopIds=null;startWorld('endless',1)};
 $('#coopBtn').onclick=()=>{Snd.init();Snd.click();openPick2()};
 $('#pick2Back').onclick=()=>{Snd.click();openHub()};
 $('#mapBack').onclick=()=>{Snd.click();coopIds=null;openHub()};
@@ -623,16 +675,16 @@ function mkPlayer(i,id){const s=PF(id),perks=s.perks;
   const p={i,id,col:i?'#fb923c':'#38bdf8',x:0,y:0,vx:0,mvx:0,mvy:0,hearts:5,maxHearts:5,bombs:1,maxBombs:1,up:{},fireInt:.33,fireT:0,speedMul:1,magnetR:0,lucky:0,shieldOn:false,shieldT:0,inv:0,down:false,downT:0,out:false,catches:0,held:{},target:null,firing:false,wind:perks.includes('p_revive'),perks,charge:1,laser:0,laserT:0,muzzle:0,
     auto:s.autoFire!==false,pw:{over:0,wing:0},longMul:1,chargeMul:1,laserLen:LASER_T,droneT:0,missileT:0};
   if(perks.includes('p_heart')){p.maxHearts=6;p.hearts=6}if(perks.includes('p_bomb')){p.maxBombs=2;p.bombs=2}return p}
-function startWorld(si,wi){Snd.init();Snd.click();goFull();const s=SECTORS[si],ids=coopIds||[player];lastWorld=[si,wi];
-  const ramp=WORLD_RAMP[wi-1],tier=s.id==='mix'?MIX_TIERS[wi-1]:ramp.tier,grade=Math.min(...ids.map(id=>kid(id).grade));
+function startWorld(si,wi){Snd.init();Snd.click();goFull();const endless=si==='endless';if(endless){wi=1;si=0}const s=endless?ENDLESS:SECTORS[si],ids=coopIds||[player];lastWorld=[endless?'endless':si,wi];
+  const ramp=endless?endlessRamp(1):WORLD_RAMP[wi-1],tier=endless?2:s.id==='mix'?MIX_TIERS[wi-1]:ramp.tier,grade=Math.min(...ids.map(id=>kid(id).grade));
   const p0=PF(ids[0]),saved=(p0.skill&&p0.skill[s.id])||3;
   show('game');$('#pauseMenu').hidden=true;$('#upgrade').hidden=true;stage.classList.toggle('wide',ids.length>1);hudCache={};
-  G={si,wi,sector:s,id:s.id+'-'+wi,ramp,tier,grade,coop:ids.length>1,ids,players:ids.map((id,i)=>mkPlayer(i,id)),t:0,phase:'intro',phaseAt:2.4,wave:1,waveT:0,correct:0,asked:0,right:0,wrongs:0,score:0,streak:0,bestStreak:0,lastCatcher:-1,team:0,
+  G={si,wi,sector:s,id:endless?'endless':s.id+'-'+wi,endless,waves:endless?99:WAVES,ramp,tier,grade,coop:ids.length>1,ids,players:ids.map((id,i)=>mkPlayer(i,id)),t:0,phase:'intro',phaseAt:2.4,wave:1,waveT:0,correct:0,asked:0,right:0,wrongs:0,score:0,streak:0,bestStreak:0,lastCatcher:-1,team:0,
     bubbles:[],bullets:[],enemies:[],eshots:[],pickups:[],parts:[],rings:[],floats:[],dots:[],q:null,qOpen:false,nextQAt:-1,log:[],missed:[],bag:[],pool:null,poolTop:0,
     L:Math.max(2,saved-2),warm:Math.max(2,saved),peakL:0,shake:0,flash:0,flashCol:'255,255,255',offer:[],taken:[],pickTurn:0,focus:-1,spawnT:1.5,shooterT:2,hydraT:6,tankUp:false,bonusTreats:0,collected:0,glowT:0,paused:false,finished:false,endAt:0,
-    top:p0.best[s.id+'-'+wi]|0,topBeaten:false,slowMul:1,won:false,beam:null,bs:1,cols:5,r:30,shipW:56,shipH:62,
+    top:p0.best[endless?'endless':s.id+'-'+wi]|0,topBeaten:false,slowMul:1,won:false,beam:null,bs:1,cols:5,r:30,shipW:56,shipH:62,
     pw:{freeze:0,x2:0,warp:0},warns:[],swarms:{},swarmN:0,chain:0,chainT:0,lastCm:1,rockT:7,snatchT:9,swarmT:8,astroT:5,capT:0,hudT:0,blitz:null,blitzDone:false,blitzEnded:false,scene:null,
-    stats:{catches:0,rescues:0,hydras:0,caps:0,snatchers:0,chainMax:0,blitzKills:0,blitzPerfect:0,hurt:0,astroN:0,kills:0}};
+    stats:{catches:0,rescues:0,hydras:0,caps:0,snatchers:0,chainMax:0,blitzKills:0,blitzPerfect:0,hurt:0,astroN:0,kills:0,bees:0,rocks:0,lasers:0,bombs:0,boss:0}};
   G.peakL=G.L;sizeStage();
   /* the sector's backdrop: a tinted sky, one soft planet and two nebula blobs that drift slowly */
   const bg=s.bg||SECTORS[0].bg;stage.style.background=`linear-gradient(180deg,${bg[0]},${bg[1]})`;document.body.style.setProperty('--bg',bg[0]);document.body.style.setProperty('--bg2',bg[1]);
@@ -642,7 +694,7 @@ function startWorld(si,wi){Snd.init();Snd.click();goFull();const s=SECTORS[si],i
     if(p.perks.includes('p_fire')&&!p.up.rapid)applyUp(p,'rapid',true);if(p.perks.includes('p_shield')&&!p.up.shield)applyUp(p,'shield',true);recompute(p)});
   for(let i=0;i<20;i++)G.dots.push({x:Math.random(),y:Math.random(),s:rand(1,3)});
   $('#eq').className='eq';$('#eq').textContent='Ready?';updateHUD();
-  banner(`${s.name} · World ${wi}`,G.coop?'Fly into the right answer together!':'Fly into the right answer!');
+  banner(endless?'Endless':`${s.name} · World ${wi}`,endless?'How many waves can you clear?':G.coop?'Fly into the right answer together!':'Fly into the right answer!');
   $('#gameHint').textContent=G.coop?'P1: W A S D to fly, F to shoot, left Shift laser, Q bomb · P2: arrow keys, . or right Ctrl to shoot, right Shift laser, / bomb · auto-fire follows each player’s setting · P to pause':'Arrow keys or W A S D to fly · it shoots on its own (Space or left Ctrl too) · left Shift for the laser · B for a bomb · P to pause'}
 function recompute(p){const u=p.up;p.fireInt=[.33,.25,.2,.16][Math.min(3,u.rapid|0)];p.speedMul=Math.pow(1.2,u.speed|0)*(p.perks.includes('p_grip')?1.15:1);
   p.magnetR=Math.max(p.perks.includes('p_magnet')?100:0,[0,120,200][Math.min(2,u.magnet|0)]);p.lucky=u.lucky|0;
@@ -668,7 +720,7 @@ function mult(){return 1+Math.min(4,Math.floor(G.streak/3))}
 /* Glow Mode and the Double Points capsule stack; the kill chain multiplies enemy points only */
 function scoreMul(){return (G.glowT>0?2:1)*(G.pw.x2>0?2:1)}
 function chainMul(){return 1+Math.min(3,Math.floor(G.chain/3))}
-function bossWave(){return G.ramp.tank&&G.wave===WAVES}
+function bossWave(){return G.endless?G.wave%4===0:(G.ramp.tank&&G.wave===G.waves)}
 function bossAlive(){return G.enemies.some(e=>(e.kind==='tank'||e.kind==='boss')&&e.hp>0&&!e.flee)}
 /* a bubble the Snatcher is carrying goes back to normal play (or fades with the rest) when its problem is over */
 function releaseHeld(b){const e=b.by;b.by=null;if(e){e.held=null;e.tgt=null;e.mode='leave'}}
@@ -712,17 +764,17 @@ function shipsAlive(){return G.players.filter(p=>!p.down&&!p.out)}
 function nearestShip(x,y){let best=null,bd=1e9;for(const p of shipsAlive()){const d=dist(x,y,p.x,p.y);if(d<bd){bd=d;best=p}}return best}
 
 /* waves */
-function startRun(){G.phase='run';G.waveT=0;spawnProblem();if(bossWave()&&!G.tankUp){G.tankUp=true;if(G.si%2)spawnBoss();else spawnTank()}}
+function startRun(){G.phase='run';G.waveT=0;spawnProblem();if(bossWave()&&!G.tankUp){G.tankUp=true;if(G.endless?(G.wave/4)%2===0:G.si%2)spawnBoss();else spawnTank()}}
 function waveClear(){G.phase='clear';G.phaseAt=G.t+1.8;G.qOpen=false;G.nextQAt=-1;
   for(const e of G.enemies)e.flee=true;G.eshots=[];for(const b of G.bubbles)if(b.state==='live'||b.state==='held'){releaseHeld(b);b.state='fade';b.hold=0}
   let hearts=0;for(const p of G.players)if(!p.down&&!p.out)hearts+=p.hearts;
   const bonus=150*G.wave+50*hearts;G.score+=bonus;checkTop();
   for(const p of G.players){if(p.down||p.out)continue;p.hearts=Math.min(p.maxHearts,p.hearts+1);p.bombs=Math.min(p.maxBombs,p.bombs+1)}
-  banner(G.wave<WAVES?`Wave ${G.wave} clear!`:'World clear!',`+${bonus} bonus`);Snd.glow();confetti(G.wave<WAVES?40:140);updateHUD()}
-function afterClear(){if(G.blitzEnded){G.blitzEnded=false;nextWave();return}if(G.wave<WAVES)openUpgrade();else{G.phase='won';G.won=true;G.endAt=G.t+2.4;Snd.win();confetti(120)}}
-function nextWave(){G.wave++;G.correct=0;G.phase='intro';G.phaseAt=G.t+1.6;G.spawnT=1.5;G.shooterT=2;G.hydraT=6;G.rockT=rand(5,8);G.snatchT=9;G.swarmT=8;G.astroT=rand(3,8);G.warns=[];
+  banner(G.wave<G.waves?`Wave ${G.wave} clear!`:'World clear!',`+${bonus} bonus`);Snd.glow();confetti(G.wave<G.waves?40:140);updateHUD()}
+function afterClear(){if(G.blitzEnded){G.blitzEnded=false;nextWave();return}if(G.wave<G.waves)openUpgrade();else{G.phase='won';G.won=true;G.endAt=G.t+2.4;Snd.win();confetti(120)}}
+function nextWave(){G.wave++;G.correct=0;G.phase='intro';G.phaseAt=G.t+1.6;if(G.endless){G.wi=G.wave;G.ramp=endlessRamp(G.wave);G.tier=G.ramp.tier;G.tankUp=false;G.blitzDone=false}G.spawnT=1.5;G.shooterT=2;G.hydraT=6;G.rockT=rand(5,8);G.snatchT=9;G.swarmT=8;G.astroT=rand(3,8);G.warns=[];
   for(const p of G.players)if(p.down||p.out){p.down=false;p.out=false;p.hearts=2;p.inv=2}
-  banner(`Wave ${G.wave}`,bossWave()?'Boss incoming!':G.wave===WAVES?'Last wave!':'');updateHUD()}
+  banner(`Wave ${G.wave}`,bossWave()?'Boss incoming!':G.wave===G.waves?'Last wave!':'');updateHUD()}
 function openUpgrade(){G.phase='upgrade';G.pickTurn=0;G.taken=[];G.focus=-1;const n=G.coop||G.players[0].perks.includes('p_pick4')?4:3;
   const cands=shuffle(UP_ORDER.filter(id=>!UPGRADES[id].evo&&G.players.some(p=>(p.up[id]|0)<UPGRADES[id].max)));
   /* an evolution that someone has just earned takes the first slot as a gold card */
@@ -738,7 +790,7 @@ function pickUp(i){if(!G||G.phase!=='upgrade'||G.taken.includes(i)||i<0||i>=G.of
   if((p.up[id]|0)>=u.max){G.bonusTreats+=15;float('Already maxed: +15 treats',p.x,p.y-60,'#fff',20)}else applyUp(p,id);
   Snd.coin();G.taken.push(i);
   if(G.coop&&G.pickTurn===0){G.pickTurn=1;G.focus=-1;renderOffer();return}
-  $('#upgrade').hidden=true;if(G.wave===2&&!G.blitzDone)startBlitz();else nextWave()}
+  $('#upgrade').hidden=true;if((G.endless?G.wave%5===0:G.wave===2)&&!G.blitzDone)startBlitz();else nextWave()}
 /* the Bonus Blitz (Galaga's Challenging Stage): after the wave-2 pick, 15 seconds where nothing shoots and nothing hurts;
    two formations of eight sweep through, treats rain, and shooting all 16 is a perfect */
 function startBlitz(){G.phase='blitz';G.blitzDone=true;G.blitz={t:BLITZ_T,kills:0,spawnT:.8,wave:0};G.qOpen=false;G.nextQAt=-1;
@@ -901,7 +953,7 @@ function updateEnemies(dt){const cap=Math.min(6,G.ramp.cap+(G.wave-1)),fz=G.pw.f
     if(rockOK()){G.rockT-=edt;if(G.rockT<=0&&G.enemies.filter(e=>e.kind==='rock'&&e.big&&!e.flee).length<2){spawnRock();G.rockT=rand(6,9)}}
     if(snatchOK()&&!G.enemies.some(e=>e.kind==='snatch'&&!e.flee)){G.snatchT-=edt;if(G.snatchT<=0){spawnSnatcher();G.snatchT=18}}
     if(swarmOK()&&!G.enemies.some(e=>e.kind==='bee'&&!e.flee)){G.swarmT-=edt;if(G.swarmT<=0){spawnSwarm();G.swarmT=16}}
-    G.astroT-=edt;if(G.astroT<=0&&G.stats.astroN<3&&G.stats.astroN<G.wave){spawnAstro();G.astroT=99}
+    G.astroT-=edt;if(G.astroT<=0&&G.stats.astroN<(G.endless?99:3)&&G.stats.astroN<G.wave){spawnAstro();G.astroT=99}
     G.capT+=edt;if(G.capT>SUPPLY_T){dropCap(rand(40,W-40),-14);float('Supply drop!',W/2,H*.2,'#fff',20)}}
   for(const w of G.warns)w.t-=dt;G.warns=G.warns.filter(w=>w.t>0);
   for(const e of G.enemies){e.flash=Math.max(0,e.flash-dt);e.tele=false;
@@ -926,10 +978,10 @@ function killEnemy(e){if(e.dead)return;e.dead=true;e.hp=0;burst(e.x,e.y,e.kind==
   const pts=Math.round(e.score*mult()*cm*scoreMul());G.score+=pts;checkTop();float('+'+pts,e.x,e.y-30,'#fff',22);Snd.hit();
   if(e.kind==='tank'||e.kind==='hydra'||e.kind==='boss'){G.pickups.push({kind:'heart',x:e.x,y:e.y,vy:80});for(let i=0;i<4;i++)G.pickups.push({kind:'treat',x:e.x+rand(-30,30),y:e.y+rand(-10,10),vy:110*G.bs});dropCap(e.x,e.y+30);G.shake=16;
     if(e.kind==='hydra'){G.stats.hydras++;for(const m of e.arms)if(m.state!=='gone')puff(m.x,m.y);banner('Hydra down!');Snd.win()}
-    else{banner(e.kind==='boss'?'Mothership down!':'Tank down!');Snd.win();if(G.correct>=WAVE_N&&G.phase==='run')waveClear()}}
-  else if(e.kind==='rock'){if(e.big){spawnRock(true,e.x-12,e.y,-rand(60,110)*G.bs);spawnRock(true,e.x+12,e.y,rand(60,110)*G.bs)}else rollDrop(e)}
+    else{G.stats.boss++;banner(e.kind==='boss'?'Mothership down!':'Tank down!');Snd.win();if(G.correct>=WAVE_N&&G.phase==='run')waveClear()}}
+  else if(e.kind==='rock'){G.stats.rocks++;if(e.big){spawnRock(true,e.x-12,e.y,-rand(60,110)*G.bs);spawnRock(true,e.x+12,e.y,rand(60,110)*G.bs)}else rollDrop(e)}
   else if(e.kind==='snatch'){G.stats.snatchers++;if(e.held){const b=e.held;e.held=null;if(b.state==='held'){b.by=null;b.state='live';float('Dropped it!',b.x,b.y-44,'#bbf7d0',22)}}if(Math.random()<.5)dropCap(e.x,e.y);else rollDrop(e)}
-  else if(e.kind==='bee'){const sw=G.swarms[e.swarm];if(sw)sw.killed++;
+  else if(e.kind==='bee'){G.stats.bees++;const sw=G.swarms[e.swarm];if(sw)sw.killed++;
     if(e.blitz){if(G.blitz)G.blitz.kills++;G.pickups.push({kind:'treat',x:e.x,y:e.y,vy:110*G.bs})}
     else if(sw&&sw.killed>=sw.n){const bonus=200*scoreMul();G.score+=bonus;float(`Full swarm! +${bonus}`,e.x,e.y-60,'#fde68a',26);Snd.glow();dropCap(e.x,e.y)}
     else rollDrop(e)}
@@ -950,7 +1002,7 @@ function givePower(p,id){const pw=POWERS[id];if(!pw)return;G.stats.caps++;G.capT
   else{const t=pw.t*p.longMul;if(pw.global)G.pw[id]=Math.max(G.pw[id],t);else p.pw[id]=Math.max(p.pw[id],t);sub=`${Math.round(t)} seconds`;
     if(id==='freeze'){G.flash=.4;G.flashCol='125,211,252';G.eshots=[]}else if(id==='warp'){G.flash=.3;G.flashCol='167,139,250'}}
   banner(pw.name,sub);burst(p.x,p.y,30);Snd.glow();updateHUD()}
-function useBomb(p){if(!G||G.paused||!active()||p.down||p.out||p.bombs<=0)return;p.bombs--;
+function useBomb(p){if(!G||G.paused||!active()||p.down||p.out||p.bombs<=0)return;p.bombs--;G.stats.bombs++;
   for(const e of G.enemies){if(e.flee||e.hp<=0)continue;if(e.kind==='tank'){e.hp-=3;e.flash=.3;if(e.hp<=0)killEnemy(e)}else if(e.kind==='hydra'){e.flash=.3;if(e.open>0){e.hp-=4;if(e.hp<=0)killEnemy(e)}}
     else if(e.kind==='boss'){e.flash=.3;let any=false;for(const t of e.turrets)if(t.hp>0){any=true;t.hp-=3;t.flash=.3;if(t.hp<=0)burst(t.x,t.y,30)}if(!any){e.hp-=3;if(e.hp<=0)killEnemy(e)}}
     else killEnemy(e)}
@@ -960,7 +1012,7 @@ function addCharge(p,n){if(p.charge>=1)return;const seg=Math.floor(p.charge*5);p
   if(p.charge>=1){float('Laser ready!',p.x,p.y-70,p.col,20);Snd.coin()}if(Math.floor(p.charge*5)!==seg)updateHUD()}
 function useSpecial(p){if(!G||G.paused||!active()||p.down||p.out||p.laser>0)return;
   if(p.charge<1){float('Laser charging...',p.x,p.y-70,'#fff',18);return}
-  p.charge=0;p.laser=p.laserLen;p.laserT=0;G.shake=8;Snd.laser();banner('LASER!');updateHUD()}
+  p.charge=0;p.laser=p.laserLen;p.laserT=0;G.stats.lasers++;G.shake=8;Snd.laser();banner('LASER!');updateHUD()}
 function updateLaser(p,dt){p.muzzle=Math.max(0,p.muzzle-dt);
   if(p.laser<=0){if(G.phase==='run')addCharge(p,dt/(CHARGE_T*p.chargeMul));return}
   p.laser-=dt;p.laserT-=dt;const hw=G.shipW*.45,top=p.y-G.shipH*.45;
@@ -1049,7 +1101,7 @@ let hudCache={};
 function put(sel,html){if(hudCache[sel]===html)return;hudCache[sel]=html;$(sel).innerHTML=html}
 function updateHUD(){if(!G)return;
   put('#hearts',G.players.map(p=>`<div class="hearts pill" style="border-color:${p.col}">${G.coop?`<span class="tag" style="color:${p.col}">P${p.i+1}</span>`:''}${p.out?'<span class="tag">out</span>':p.down?'<span class="tag">rescue!</span>':Array.from({length:p.maxHearts},(_,i)=>heartSvg(i<p.hearts)).join('')}${p.shieldOn?'<span class="tag" style="color:#7dd3fc">◉</span>':''}</div>`).join(''));
-  put('#stageLbl',`World ${G.wi} · Wave ${G.wave}/${WAVES} · ${Math.min(G.correct,WAVE_N)}/${WAVE_N}`);
+  put('#stageLbl',G.endless?`Endless · Wave ${G.wave} · ${Math.min(G.correct,WAVE_N)}/${WAVE_N}`:`World ${G.wi} · Wave ${G.wave}/${WAVES} · ${Math.min(G.correct,WAVE_N)}/${WAVE_N}`);
   const w=(Math.min(1,G.correct/WAVE_N)*100)+'%';if(hudCache.prog!==w){hudCache.prog=w;$('#progBar').style.width=w}
   put('#bombs','Bomb '+G.players.map(p=>'●'.repeat(p.bombs)+'○'.repeat(Math.max(0,p.maxBombs-p.bombs))).join(' · '));
   put('#special',G.players.map(p=>p.out||p.down?'-':p.laser>0?'<b>FIRING</b>':p.charge>=1?'<b>READY</b>':'▰'.repeat(Math.floor(p.charge*5))+'▱'.repeat(5-Math.floor(p.charge*5))).join(' · ').replace(/^/,'Laser '));
@@ -1251,30 +1303,35 @@ function draw(){const c=cx,t=G.t;c.setTransform(DPR(),0,0,DPR(),0,0);c.clearRect
 function finish(){const g=G;G=null;$('#upgrade').hidden=true;$('#pauseMenu').hidden=true;
   const won=g.won,maxHearts=Math.max(...g.players.map(p=>p.down||p.out?0:p.hearts));
   const stars=won?(g.wrongs===0?3:maxHearts>=3?2:1):0,wavesCleared=won?WAVES:g.wave-1;
+  const runStats=Object.assign({},g.stats,{wins:won?1:0,untouched:won&&g.stats.hurt===0?1:0,perfect:won&&g.wrongs===0?1:0,chain4:g.stats.chainMax>=9?1:0,streak8:g.bestStreak>=8?1:0,collected:g.collected,endless5:g.endless&&g.wave>=5?1:0});if(won)runStats['sector:'+g.sector.id]=1;const doneBy={};
   const base=g.right*2+g.collected+wavesCleared*3+stars*5+g.bonusTreats;const earnedBy={};let prevBest=0,newBest=false;
   /* the four medals (all need the world cleared); each one pays 10 treats the first time */
   const medals={p:won&&g.wrongs===0,u:won&&g.stats.hurt===0,r:won&&g.stats.rescues>=3,b:won&&g.stats.blitzPerfect>0},newMedals=[];
   g.ids.forEach((id,i)=>{const p=PF(id);const earned=p.perks.includes('p_luck')?Math.round(base*1.25):base;earnedBy[id]=earned;p.cur=(p.cur|0)+earned;
     const old=p.best[g.id]|0;if(i===0){prevBest=old;newBest=g.score>old&&old>0}if(g.score>old)p.best[g.id]=g.score;
-    p.stars[g.id]=Math.max(p.stars[g.id]|0,stars);
-    for(const m of MEDAL_IDS)if(medals[m]){const key=g.id+'/'+m;if(!p.medals[key]){p.medals[key]=1;p.cur+=10;if(i===0)newMedals.push(m)}}
-    p.skill[g.sector.id]=Math.round(clamp(g.L*.5+g.peakL*.5-.5,1,L_MAX)*100)/100;
+    if(g.endless){p.best['endless-wave']=Math.max(p.best['endless-wave']|0,g.wave)}else p.stars[g.id]=Math.max(p.stars[g.id]|0,stars);
+    /* missions: add this run's counters, pay out the finished ones and slide the next ones in */
+    const mm=missionsOf(p),done=[];for(const a of mm.active){const d=MISSION_BY[a.id];a.n+=runStats[d.stat]|0;if(a.n>=d.n){done.push(d);p.cur+=d.pay;mm.done++}}
+    if(done.length){mm.active=mm.active.filter(a=>!done.some(d=>d.id===a.id));missionsOf(p)}doneBy[id]=done;
+    for(const m of MEDAL_IDS)if(medals[m]&&!g.endless){const key=g.id+'/'+m;if(!p.medals[key]){p.medals[key]=1;p.cur+=10;if(i===0)newMedals.push(m)}}
+    if(!g.endless)p.skill[g.sector.id]=Math.round(clamp(g.L*.5+g.peakL*.5-.5,1,L_MAX)*100)/100;
     for(const l of g.log){const box=l.q.op==='tables'?p.facts:p.ops,key=l.q.op==='tables'?l.q.key:l.q.op;const f=box[key]||(box[key]={r:0,w:0});if(l.ok)f.r++;else f.w++}
     const pl=g.players[i];p.ups={};for(const k of UP_ORDER)if(pl.up[k])p.ups[k]=Math.min(UPGRADES[k].max,pl.up[k]);
     p.games=(p.games|0)+1;if(g.coop){p.coop.played++;if(won)p.coop.wins++}persistFor(id)});
-  $('#resTitle').textContent=won?(stars===3?'Perfect world!':'World clear!'):g.topBeaten?'New top score!':'Game over';
-  $('#resSub').textContent=`${g.sector.name} · World ${g.wi}${won?'':` · wave ${g.wave} of ${WAVES}`}${g.coop?` · ${kid(g.ids[0]).name} & ${kid(g.ids[1]).name}`:''}`;
-  $('#resStars').innerHTML=starSvg(false).repeat(3);
+  $('#resTitle').textContent=g.endless?`Wave ${g.wave} reached!`:won?(stars===3?'Perfect world!':'World clear!'):g.topBeaten?'New top score!':'Game over';
+  $('#resSub').textContent=g.endless?`Endless${g.topBeaten?' · new top score':''}${g.coop?` · ${kid(g.ids[0]).name} & ${kid(g.ids[1]).name}`:''}`:`${g.sector.name} · World ${g.wi}${won?'':` · wave ${g.wave} of ${WAVES}`}${g.coop?` · ${kid(g.ids[0]).name} & ${kid(g.ids[1]).name}`:''}`;
+  $('#resStars').innerHTML=g.endless?'':starSvg(false).repeat(3);
+  $('#resMissions').innerHTML=(doneBy[g.ids[0]]||[]).map(d=>`<span class="chip-done">Mission done! ${d.name} · +${d.pay} treats</span>`).join('');
   $('#resBest').innerHTML=newBest?`<span class="newbest">Beat your old top of ${prevBest.toLocaleString()}!</span>`:'';
   $('#rScore').textContent=g.score.toLocaleString();$('#rRight').textContent=`${g.right}/${g.asked}`;$('#rCombo').textContent=g.bestStreak;$('#rCur').innerHTML=`+${earnedBy[g.ids[0]]}`;
   $('#resTeam').textContent=g.coop?`${g.players.map(p=>`${kid(p.id).name} caught ${p.catches}`).join(' · ')} · ${g.team} teamwork catches · ${earnedBy[g.ids[1]]} treats each`:'';
-  const p0m=PF(g.ids[0]).medals;$('#resMedals').innerHTML=MEDAL_IDS.map(m=>{const on=!!p0m[g.id+'/'+m],nw=newMedals.includes(m);return `<span class="medal${on?' on':''}${nw?' new':''}" title="${MEDALS[m].blurb}"><i>${MEDALS[m].ic}</i>${MEDALS[m].name}${nw?'<em>NEW +10</em>':''}</span>`}).join('');
+  const p0m=PF(g.ids[0]).medals;$('#resMedals').innerHTML=g.endless?'':MEDAL_IDS.map(m=>{const on=!!p0m[g.id+'/'+m],nw=newMedals.includes(m);return `<span class="medal${on?' on':''}${nw?' new':''}" title="${MEDALS[m].blurb}"><i>${MEDALS[m].ic}</i>${MEDALS[m].name}${nw?'<em>NEW +10</em>':''}</span>`}).join('');
   const st=g.stats;$('#resExtra').textContent=[st.kills?`${st.kills} enemies down`:'',st.chainMax>=3?`best chain ×${1+Math.min(3,Math.floor(st.chainMax/3))}`:'',st.caps?`${st.caps} power-up${st.caps>1?'s':''}`:'',st.rescues?`${st.rescues} astronaut${st.rescues>1?'s':''} rescued`:'',g.blitzDone?`Blitz ${st.blitzKills}/16`:''].filter(Boolean).join(' · ');
   const miss=[...new Set(g.log.filter(l=>!l.ok).map(l=>`${l.q.text} = ${l.q.ans}`))];
   $('#practice').innerHTML=miss.length?`<h3 style="margin:8px 0">Ones to practice</h3><div class="chips">${miss.map(m=>`<span class="chip-m">${m}</span>`).join('')}</div>`:(g.asked?'<h3 style="margin:8px 0">Every answer right!</h3>':'');
-  $('#nextBtn').hidden=!worldOpen(PF(g.ids[0]),g.si,g.wi+1);
+  $('#nextBtn').hidden=g.endless||!worldOpen(PF(g.ids[0]),g.si,g.wi+1);
   show('results');
-  const sv=document.querySelectorAll('#resStars .st');for(let i=0;i<stars;i++)setTimeout(()=>{sv[i].classList.add('on');Snd.star(i);const r=sv[i].getBoundingClientRect();fxBurst(r.left+r.width/2,r.top+r.height/2,30)},500+i*450);
+  const sv=document.querySelectorAll('#resStars .st');for(let i=0;i<stars&&i<sv.length;i++)setTimeout(()=>{sv[i].classList.add('on');Snd.star(i);const r=sv[i].getBoundingClientRect();fxBurst(r.left+r.width/2,r.top+r.height/2,30)},500+i*450);
   if(won)setTimeout(()=>fxConfetti(160),300)}
 $('#againBtn').onclick=()=>{if(lastWorld)startWorld(lastWorld[0],lastWorld[1])};
 $('#nextBtn').onclick=()=>{if(lastWorld)startWorld(lastWorld[0],lastWorld[1]+1)};
@@ -1356,7 +1413,7 @@ renderMenu();renderSaveNote();requestAnimationFrame(frame);
 })();
 window.__ms={get G(){return G},normalize,get saves(){return saves},net:Net,cloud:CLOUD,MSMath,BUILD,SECTORS,WORLD_RAMP,UPGRADES,PERKS,POWERS,MEDALS,EVOS:EVO_IDS,
   input(i,h){if(G&&G.players[i]){Object.assign(G.players[i].held,h);G.players[i].target=null}},pickUp,useBomb,useSpecial,spawnHydra,hydraHit,startWorld,setCoop(ids){coopIds=ids},player:()=>player,P:()=>P(),buyPerk:id=>buyPerk(PERKS[id]),worldOpen:(si,wi)=>worldOpen(P(),si,wi),
-  spawnRock,spawnSnatcher,spawnSwarm,spawnBoss,spawnAstro,bossHit,startBlitz,openUpgrade,scoreMul,chainMul,setAuto,
+  spawnRock,spawnSnatcher,spawnSwarm,spawnBoss,spawnAstro,bossHit,startBlitz,openUpgrade,scoreMul,chainMul,setAuto,bossWave,MISSIONS,missions:()=>missionsOf(P()),nextWave,
   givePower:(i,id)=>givePower(G.players[i],id),damage:(e,n)=>{e.hp-=n;if(e.hp<=0)killEnemy(e)},applyUp:(i,id)=>applyUp(G.players[i],id,true),drones:i=>drones(G.players[i]),hitPlayer:i=>hitPlayer(G.players[i])};
 if(CLOUD&&location.protocol.startsWith('http'))setTimeout(()=>{fetch(location.pathname,{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD='([^']+)'/);if(m&&m[1]!==BUILD&&!location.search.includes('v='+m[1]))location.replace(location.pathname+'?v='+m[1])}).catch(()=>{})},1500);
 })();

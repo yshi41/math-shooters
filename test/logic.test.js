@@ -31,5 +31,7 @@ const assert = require('assert');
   const med = mergeState({ medals: { 'add-1/p': 1 } }, { medals: { 'add-1/u': 1 } }, {});
   assert.deepStrictEqual(med.medals, { 'add-1/u': 1, 'add-1/p': 1 });
   assert.strictEqual(lowersProgress({ stars: {}, medals: {} }, { stars: {}, medals: { 'add-1/p': 1 } }), true);
-  console.log('logic: 19 checks ok');
+  const mis = mergeState({ missions: { active: [{ id: 'catch25', n: 7 }], done: 1, next: 4 } }, { missions: { active: [], done: 0, next: 3 } }, {});
+  assert.deepStrictEqual(mis.missions, { active: [{ id: 'catch25', n: 7 }], done: 1, next: 4 }, 'missions follow this page');
+  console.log('logic: 20 checks ok');
 })().catch(e => { console.error(e); process.exit(1); });

@@ -37,6 +37,12 @@ through a **world map**: six sectors (Addition, Subtraction, Times Tables, Multi
 each, getting harder slowly, each with its own sky. World 3 of a sector opens the next sector; Mixed opens when world 3
 of every other sector is done. Numbers follow the kid's grade (Riley 3rd, Charlie and the test player Yan 4th).
 
+**Missions** (three at a time on the hub, Jetpack Joyride style): "Catch 25 answers", "Rescue 5 astronauts", "Pop 2
+Math Hydras" and so on, 24 in a fixed order; each pays treats when it is done and the next one slides in. Progress
+is added at the end of every world from the run's counters. **Endless** opens once any world 3 is cleared: mixed
+problems, waves that never stop (speed, enemy cap and numbers climb every wave), a boss every fourth wave (tank and
+Mothership take turns), a Blitz every fifth, no stars; the best wave and score show on the hub button.
+
 ### Borrowed from the games kids play
 
 | Game | What it does | Here |
@@ -45,8 +51,9 @@ of every other sector is done. Numbers follow the kid's grade (Riley 3rd, Charli
 | Galaga | the Challenging Stage, the tractor beam, the dual fighter | Bonus Blitz, the Bubble Snatcher, the Wingman drone |
 | Raiden / Gradius | colour-coded capsules, homing missiles | capsule power-ups, Homing Missiles |
 | DoDonPachi | kill chains | the chain multiplier |
-| Galaxy Attack | enemies glimmer before firing, edge warnings, boss phases | telegraphs, chevrons, the angry tank and the Mothership |
+| Galaxy Attack | enemies glimmer before firing, edge warnings, boss phases, Endless mode | telegraphs, chevrons, the angry tank and the Mothership, Endless |
 | Vampire Survivors | weapon evolutions | the gold Evolution cards |
+| Jetpack Joyride | three visible missions, the next slides in | the Missions card on the hub |
 
 **Two players on one keyboard** (computer only): player 1 flies with W A S D, shoots with F, lasers with left Shift and bombs with Q, player 2 flies
 with the arrow keys, shoots with . or right Ctrl, lasers with right Shift and bombs with /. Either ship may catch the answer; a wrong catch costs the catcher. A

@@ -32,6 +32,7 @@ export function mergeState(mine, theirs, base) {
   }
   out.perks = [...new Set([...(Array.isArray(theirs.perks) ? theirs.perks : []), ...(Array.isArray(mine.perks) ? mine.perks : [])].filter(x => typeof x === 'string'))];
   if ('autoFire' in mine) out.autoFire = mine.autoFire;
+  if (isObj(mine.missions)) out.missions = clone(mine.missions);
   out.updated = Date.now();
   return out;
 }

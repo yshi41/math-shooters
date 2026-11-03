@@ -125,12 +125,14 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
   check(r.cur > 150, 'treats were added to the other device total (' + r.cur + ')');
   check(r.ops.add && r.ops.add.w >= 1 && r.ops.add.r >= 10, 'the answer log reached the save (' + JSON.stringify(r.ops) + ')');
   check(r.medals && typeof r.medals === 'object' && !r.medals['add-3/p'] && r.autoFire === false, 'medals are in the save, no Perfect after a wrong catch, auto-fire setting kept (' + JSON.stringify(r.medals) + ')');
+  check(r.missions && r.missions.active.length === 3 && ((r.missions.active.find(m => m.id === 'catch25') || {}).n | 0) >= 10, 'three missions in the save and the catch mission advanced (' + JSON.stringify(r.missions) + ')');
   check(await p.evaluate(() => window.__storageWrites) === 0, 'nothing was written to browser storage');
   check(await p.evaluate(() => { try { return localStorage.length === 0 && sessionStorage.length === 0; } catch (e) { return true; } }), 'browser storage is empty');
   check(await p.evaluate(() => !document.querySelector('#nextBtn').hidden), 'Next world is offered after a clear');
 
   /* 3. the store: a perk bought now applies to the next world */
   await p.click('#mapBtn'); await wait(200); await p.click('#mapBack'); await wait(200);
+  check(await p.evaluate(() => document.querySelectorAll('#missions .mission').length === 3 && /\d+ \/ 25/.test(document.querySelector('[data-mission=catch25]').textContent)), 'the hub shows three missions with progress');
   await p.click('#tAuto'); await wait(200);
   check(await p.evaluate(() => window.__ms.P().autoFire === true && document.querySelector('#tAuto').getAttribute('aria-pressed') === 'true'), 'the hub Auto-fire toggle turns it on');
   await until(() => p.evaluate(() => window.__ms.net.idle()));
@@ -238,6 +240,18 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
   check(await p.evaluate(() => !document.querySelector('#pauseMenu').hidden && window.__ms.G.paused), 'P pauses');
   await p.click('#quitBtn'); await wait(300);
   check(await p.evaluate(() => !document.querySelector('#results').hidden), 'quitting from pause ends on the results screen');
+  /* Endless: opens after any world 3; mixed problems, its own ramp, a boss every 4th wave, no stars, the best wave saved */
+  await p.click('#mapBtn'); await wait(200); await p.click('#mapBack'); await wait(200);
+  check(await p.evaluate(() => !document.querySelector('#endlessBtn').hidden), 'Endless is offered once a world 3 is cleared');
+  await p.click('#endlessBtn'); await wait(300);
+  await until(() => p.evaluate(() => window.__ms.G && window.__ms.G.phase === 'run'), 6000);
+  const el = await p.evaluate(() => { const ms = window.__ms, G = ms.G, out = { endless: G.endless === true, waves: G.waves, label: document.querySelector('#stageLbl').textContent };
+    G.wave = 4; out.boss4 = ms.bossWave(); G.wave = 3; out.boss3 = ms.bossWave(); G.wave = 4; ms.nextWave(); out.wave5 = G.wave === 5 && G.wi === 5 && G.ramp.speed > 112; return out; });
+  check(el.endless && el.waves === 99 && /Endless/.test(el.label) && el.boss4 && !el.boss3 && el.wave5, 'Endless runs with its own ramp and a boss every 4th wave ' + JSON.stringify(el));
+  await p.keyboard.press('p'); await wait(150); await p.click('#quitBtn'); await wait(300);
+  check(await p.evaluate(() => /Wave 5 reached/.test(document.querySelector('#resTitle').textContent) && document.querySelector('#nextBtn').hidden), 'Endless ends with the wave reached and no Next world');
+  await until(() => p.evaluate(() => window.__ms.net.idle()));
+  check(mock.store.riley.state.best['endless-wave'] === 5 && !('endless' in mock.store.riley.state.stars), 'the best Endless wave is saved, with no star');
 
   /* 4. two players on one keyboard: separate ships, a rescue, and four cards to share */
   await p.click('#mapBtn'); await wait(200);
