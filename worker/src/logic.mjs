@@ -16,7 +16,7 @@ export function mergeState(mine, theirs, base) {
   out.games = num(theirs.games) + Math.max(0, delta(mine.games, base.games));
   const tc = isObj(theirs.coop) ? theirs.coop : {}, mc = isObj(mine.coop) ? mine.coop : {}, bc = isObj(base.coop) ? base.coop : {};
   out.coop = { played: num(tc.played) + Math.max(0, delta(mc.played, bc.played)), wins: num(tc.wins) + Math.max(0, delta(mc.wins, bc.wins)) };
-  for (const k of ['stars', 'best', 'ups']) {
+  for (const k of ['stars', 'best', 'ups', 'medals']) {
     out[k] = Object.assign({}, isObj(theirs[k]) ? theirs[k] : {});
     const m = isObj(mine[k]) ? mine[k] : {};
     for (const key in m) out[k][key] = Math.max(num(out[k][key]), num(m[key]));
@@ -39,7 +39,7 @@ export function mergeState(mine, theirs, base) {
 /* true when a save would throw away earned progress (stars, top scores, upgrade levels, bought perks) */
 export function lowersProgress(next, cur) {
   if (!isObj(cur) || !isObj(next)) return false;
-  for (const k of ['stars', 'best', 'ups']) {
+  for (const k of ['stars', 'best', 'ups', 'medals']) {
     const c = isObj(cur[k]) ? cur[k] : {}, n = isObj(next[k]) ? next[k] : {};
     for (const key in c) if (num(n[key]) < num(c[key])) return true;
   }

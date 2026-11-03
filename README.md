@@ -3,19 +3,50 @@
 A vertical shooter for the kids where the math is caught, not typed. Live at https://yshi41.github.io/math-shooters/
 
 The problem sits at the top and answer bubbles fall down the screen. **Bubbles cannot be shot**: fly the ship
-into the right one. A missed bubble floats back up and comes around again. Every enemy shoots back: crashers fire and dive, saucers shoot,
-and a tank guards world 6 of every sector; hold the fire key to shoot them. After every wave you pick one of
-three upgrades, and **upgrades are kept for good**: they are saved with the kid's profile and carry into every
-world (a hit or a wrong answer only costs a heart). The ship's look shows them: nose guns for Rapid Fire, wing pods
-for Spread Shot, a glowing core for Power Shot, bigger flames for Speedy Fins, a bubble for the shield. The **laser**
-(left Shift) charges over 25 seconds, a quarter per right answer, then burns its column clear for 2 seconds. The
-**Math Hydra** (from wave 2, or wave 1 from world 3; never on the boss wave) carries its own problem on its belly and
-one answer on each arm (3 arms, 4 from world 4). Its armor holds until the arm with the right answer is shot off; the
-body then takes hits (bullets, the laser, a bomb) for 4.5 seconds, until that arm grows back with a new problem. A
-wrong arm just grows back. Its body has 6 + world hearts. Progress runs through a **world map**: six sectors (Addition, Subtraction,
-Times Tables, Multiplication, Division, Mixed), six worlds each, getting harder slowly. World 3 of a sector
-opens the next sector; Mixed opens when world 3 of every other sector is done. Numbers follow the kid's grade
-(Riley 3rd, Charlie and the test player Yan 4th).
+into the right one. A missed bubble floats back up and comes around again. The ship **fires on its own** (Auto-fire,
+a per-player setting in the hub and the pause menu, on by default; Space or left Ctrl always work too). Every enemy
+glimmers just before it shoots and a red chevron at the screen edge warns before something flies in. Crashers fire and
+dive, saucers circle and shoot, **bees** come in swarms of five on a sine path (only the leader shoots; all five down is
++200 and a capsule), **asteroids** drift down and split in two, and the **Bubble Snatcher** grabs an answer bubble and
+flies off with it: shoot it and the bubble drops back, let it escape and the bubble returns at the top. Three **lost
+astronauts** drift through every world (one per wave); fly over them to rescue them.
+
+**Capsule power-ups** drop from enemies (about one in ten, more with Lucky Drops, always from bosses, and a supply drop
+if none has shown for 22 s): Freeze (4 s, everything stops), Double Points (10 s, stacks with Glow Mode), Time Warp
+(8 s, bubbles half speed), Overdrive (8 s, double fire rate and piercing shots), Wingman (15 s, a drone), and instant
+Shield, Laser Cell (+50% charge) and Bomb. Timers show as chips under the hearts. After every wave you pick one of
+three **upgrades**, and **upgrades are kept for good**: they are saved with the kid's profile and carry into every
+world (a hit or a wrong answer only costs a heart). Rapid Fire, Spread Shot, Power Shot, Bubble Shield, Speedy Fins,
+Slow Bubbles, Extra Heart, Bomb Bag, Treat Magnet, Lucky Drops, Piercing Shot, Buddy Drone, Homing Missiles, Long
+Lasting (power-ups last longer) and Laser Battery. Max out two matching ones and a gold **Evolution** card appears:
+Plasma Cannon (Rapid Fire + Power Shot), Starburst (Spread + Piercing), Guardian (Shield + Extra Heart), Hive (Drone +
+Missiles). The ship's look shows all of it: nose guns, wing pods, a glowing core, bigger flames, drones on tethers,
+missile rails, laser cells on the tail. The **laser** (left Shift) charges over 25 seconds, a quarter per right
+answer, then burns its column clear for 2 seconds.
+
+Every kill feeds a **chain** (kills within 1.5 s of each other multiply enemy points up to ×4). After the wave-2 pick
+comes the **Bonus Blitz**: 15 seconds where nothing can hurt you and two formations of eight sweep through; all 16
+down is a perfect (+300, a capsule, a medal). Each world has four **medals** shown on the map: Perfect (no wrong
+answers), Untouched (never hit), Rescuer (all three astronauts), Blitz (a perfect bonus round); each pays 10 treats the
+first time. Bosses: the **tank** guards world 6 of the even sectors and gets angry at half health (faster, a five-way
+fan); the **Mothership** guards the odd ones (two turrets to shoot first, then the core opens, fires a spread and sends
+crashers down). The **Math Hydra** (from wave 2, or wave 1 from world 3; never on the boss wave) carries its own problem
+on its belly and one answer on each arm (3 arms, 4 from world 4). Its armor holds until the arm with the right answer
+is shot off; the body then takes hits for 4.5 seconds, until that arm grows back with a new problem. Progress runs
+through a **world map**: six sectors (Addition, Subtraction, Times Tables, Multiplication, Division, Mixed), six worlds
+each, getting harder slowly, each with its own sky. World 3 of a sector opens the next sector; Mixed opens when world 3
+of every other sector is done. Numbers follow the kid's grade (Riley 3rd, Charlie and the test player Yan 4th).
+
+### Borrowed from the games kids play
+
+| Game | What it does | Here |
+|---|---|---|
+| Sky Force Reloaded | medals per stage, survivors to rescue | four medals per world, lost astronauts |
+| Galaga | the Challenging Stage, the tractor beam, the dual fighter | Bonus Blitz, the Bubble Snatcher, the Wingman drone |
+| Raiden / Gradius | colour-coded capsules, homing missiles | capsule power-ups, Homing Missiles |
+| DoDonPachi | kill chains | the chain multiplier |
+| Galaxy Attack | enemies glimmer before firing, edge warnings, boss phases | telegraphs, chevrons, the angry tank and the Mothership |
+| Vampire Survivors | weapon evolutions | the gold Evolution cards |
 
 **Two players on one keyboard** (computer only): player 1 flies with W A S D, shoots with F, lasers with left Shift and bombs with Q, player 2 flies
 with the arrow keys, shoots with . or right Ctrl, lasers with right Shift and bombs with /. Either ship may catch the answer; a wrong catch costs the catcher. A
@@ -23,9 +54,9 @@ downed ship becomes a rescue bubble the partner can fly into; catches that alter
 Teamwork bonus; ships close together link a beam that pops enemy shots; after a wave each player picks a card
 from four. Both kids' saves earn the stars and treats.
 
-Controls (solo): arrow keys or W A S D to fly, Space or left Ctrl to shoot, left Shift for the laser, B for a bomb, P or Esc to pause. On a touch screen
-drag anywhere on the stage to fly, tap the bombs or laser chip to use them; the pad has ◀ ▶ FIRE BOMB LASER. There is no auto-fire:
-Space, Enter or left Ctrl shoots solo (Ctrl+W would close the tab, so W is locked in full screen where the browser allows it, and leaving mid-world asks first); in two-player F shoots for player 1 and . for player 2. On a computer the game goes
+Controls (solo): arrow keys or W A S D to fly, Space or left Ctrl to shoot (or leave Auto-fire on), left Shift for the laser, B for a bomb, P or Esc to pause. On a touch screen
+drag anywhere on the stage to fly, tap the bombs or laser chip to use them; the pad has ◀ ▶ FIRE BOMB LASER. Auto-fire is a per-player
+setting saved with the profile (`autoFire`, default on); with it off, Space, Enter or left Ctrl shoots solo (Ctrl+W would close the tab, so W is locked in full screen where the browser allows it, and leaving mid-world asks first); in two-player F shoots for player 1 and . for player 2, and each ship follows its own player's setting. Drones and missiles fire whenever the ship does. On a computer the game goes
 full screen when a world starts (Esc leaves it; the pause menu has a Full screen button to go back in).
 
 Progress saves online only, through the Worker in `worker/`; nothing is ever kept in the browser.
@@ -46,7 +77,9 @@ Progress saves online only, through the Worker in `worker/`; nothing is ever kep
 
 `WORLD_RAMP` (per-world tier, bubble speed, enemy cap and timing), `MIX_TIERS`, `WAVE_N` (correct answers per
 wave), `LASER_T` and `CHARGE_T` (laser length and recharge), `HYDRA_OPEN` and `spawnHydra` (the hydra's open window, arms and
-health), the beam
+health), `POWERS` (capsule durations and colours), `SUPPLY_T` (seconds without a capsule before one drifts in), `BLITZ_T`,
+`CHAIN_T`, the drop odds in `rollDrop`, the gates `rockOK`/`snatchOK`/`swarmOK` and the spawn timers set in `nextWave`
+(`rockT` 6–9 s, `snatchT` 18 s, `swarmT` 16 s), `spawnBoss` (turret and core health), the beam
 range and rescue timer in the co-op code, and the number ranges in `MSMath`.
 
 ## Mechanics pass: what is deliberately not here yet

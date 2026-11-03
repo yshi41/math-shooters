@@ -27,5 +27,9 @@ const assert = require('assert');
   assert.strictEqual(lowersProgress({ stars: { 'add-1': 2 }, perks: [] }, { stars: { 'add-1': 2 }, perks: ['p_heart'] }), true);
   assert.strictEqual(lowersProgress({ stars: { 'add-1': 2 }, cur: 0, perks: ['p_heart'] }, { stars: { 'add-1': 2 }, cur: 500, perks: ['p_heart'] }), false, 'spending treats is allowed');
   assert.strictEqual(lowersProgress(out, theirs), false);
-  console.log('logic: 17 checks ok');
+  /* medals: one key per medal, kept from both copies, never dropped */
+  const med = mergeState({ medals: { 'add-1/p': 1 } }, { medals: { 'add-1/u': 1 } }, {});
+  assert.deepStrictEqual(med.medals, { 'add-1/u': 1, 'add-1/p': 1 });
+  assert.strictEqual(lowersProgress({ stars: {}, medals: {} }, { stars: {}, medals: { 'add-1/p': 1 } }), true);
+  console.log('logic: 19 checks ok');
 })().catch(e => { console.error(e); process.exit(1); });

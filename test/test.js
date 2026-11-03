@@ -10,7 +10,8 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 let n = 0, failed = 0;
 const check = (ok, what) => { n++; if (!ok) { failed++; console.log('  FAIL', what); } };
 const until = async (fn, ms = 20000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (await fn()) return true; await wait(100); } return false; };
-const riley0 = () => ({ cur: 100, games: 1, stars: { 'add-1': 2, 'add-2': 1 }, best: { 'add-1': 900 }, skill: {}, facts: {}, ops: {}, perks: ['p_heart'], autoFire: true, coop: { played: 0, wins: 0 } });
+/* Riley's stored save starts with auto-fire off so the quiet/held-key checks mean something; the default for a fresh save is on */
+const riley0 = () => ({ cur: 100, games: 1, stars: { 'add-1': 2, 'add-2': 1 }, best: { 'add-1': 900 }, skill: {}, facts: {}, ops: {}, perks: ['p_heart'], autoFire: false, coop: { played: 0, wins: 0 } });
 
 /* what the drive loop sees each tick */
 const snap = p => p.evaluate(() => { const G = window.__ms.G; if (!G) return null; const cv = document.querySelector('#cv');
@@ -58,6 +59,8 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
   check(await p.evaluate(() => { const fz = o => { if (o && typeof o === 'object') { Object.values(o).forEach(fz); Object.freeze(o); } return o; };
     try { const s = window.__ms.normalize(fz({ cur: 1, stars: { 'add-1': 1 }, best: { 'add-1': 5 }, skill: { add: 2 }, facts: { '2x3': { r: 1, w: 0 } }, ops: { add: { r: 1, w: 0 } }, perks: [], coop: { played: 0, wins: 0 } }));
       s.stars['add-2'] = 3; s.best['add-1'] = 9; s.skill.add = 4; s.ops.add.r++; s.facts['2x3'].w++; s.coop.played++; return s.ops.add.r === 2 && s.stars['add-2'] === 3; } catch (e) { return false; } }), 'a frozen save from the db comes back writable'); check(mock.stats.realHits === 0, 'the real service is never called');
+  check(await p.evaluate(() => { const s = window.__ms.normalize({ medals: { 'add-1/p': 1 }, ups: { plasma: 1, drone: 2, long: 2, battery: 1, bogus: 3 }, autoFire: false }), d = window.__ms.normalize({});
+    return s.medals['add-1/p'] === 1 && s.ups.plasma === 1 && s.ups.drone === 2 && s.ups.long === 2 && s.ups.battery === 1 && !('bogus' in s.ups) && s.autoFire === false && d.autoFire === true; }), 'normalize keeps medals, the new upgrade ids and the auto-fire setting (default on)');
   check(await p.evaluate(() => document.querySelector('[data-kid=riley]').textContent.includes('100')), 'Riley shows her 100 treats');
   await p.click('[data-kid=riley]'); await wait(200);
   check(await p.evaluate(() => document.querySelector('[data-perk=p_heart] button').textContent === 'Owned'), 'the store shows Heart Locket as owned');
@@ -76,7 +79,10 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
   const quiet = (await snap(p)).bullets;
   await p.keyboard.down('ControlLeft'); await wait(400);
   const ctrlShots = (await snap(p)).bullets; await p.keyboard.up('ControlLeft'); await wait(100);
-  check(quiet === 0 && ctrlShots > 0, 'nothing fires on its own and left Ctrl shoots (' + quiet + ' then ' + ctrlShots + ')');
+  check(quiet === 0 && ctrlShots > 0, 'with auto-fire off nothing fires on its own and left Ctrl shoots (' + quiet + ' then ' + ctrlShots + ')');
+  await p.evaluate(() => { window.__ms.G.bullets = []; window.__ms.G.players[0].auto = true; }); await wait(400);
+  const autoShots = (await snap(p)).bullets; await p.evaluate(() => { window.__ms.G.players[0].auto = false; });
+  check(autoShots > 0, 'with auto-fire on the ship shoots with no key held (' + autoShots + ')');
   check((await snap(p)).players[0].charge === 1, 'the laser starts charged');
   await p.keyboard.press('ShiftLeft'); await wait(100);
   let ls = (await snap(p)).players[0];
@@ -118,12 +124,18 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
   check((r.stars['add-3'] | 0) >= 1 && r.stars['sub-1'] === 1 && r.stars['add-1'] === 2, 'stars kept from both copies (' + JSON.stringify(r.stars) + ')');
   check(r.cur > 150, 'treats were added to the other device total (' + r.cur + ')');
   check(r.ops.add && r.ops.add.w >= 1 && r.ops.add.r >= 10, 'the answer log reached the save (' + JSON.stringify(r.ops) + ')');
+  check(r.medals && typeof r.medals === 'object' && !r.medals['add-3/p'] && r.autoFire === false, 'medals are in the save, no Perfect after a wrong catch, auto-fire setting kept (' + JSON.stringify(r.medals) + ')');
   check(await p.evaluate(() => window.__storageWrites) === 0, 'nothing was written to browser storage');
   check(await p.evaluate(() => { try { return localStorage.length === 0 && sessionStorage.length === 0; } catch (e) { return true; } }), 'browser storage is empty');
   check(await p.evaluate(() => !document.querySelector('#nextBtn').hidden), 'Next world is offered after a clear');
 
   /* 3. the store: a perk bought now applies to the next world */
   await p.click('#mapBtn'); await wait(200); await p.click('#mapBack'); await wait(200);
+  await p.click('#tAuto'); await wait(200);
+  check(await p.evaluate(() => window.__ms.P().autoFire === true && document.querySelector('#tAuto').getAttribute('aria-pressed') === 'true'), 'the hub Auto-fire toggle turns it on');
+  await until(() => p.evaluate(() => window.__ms.net.idle()));
+  check(mock.store.riley.state.autoFire === true, 'auto-fire is saved with the profile');
+  await p.click('#tAuto'); await wait(200);
   await p.click('[data-perk=p_bomb] button'); await wait(300);
   check(await p.evaluate(() => window.__ms.P().perks.includes('p_bomb')), 'Spare Bomb was bought');
   await until(() => p.evaluate(() => window.__ms.net.idle()));
@@ -154,6 +166,74 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
   check(hy.open && hy.bodyHit, 'shooting the right arm opens the body and the body takes damage');
   check(hy.regrown, 'the arm grows back with a new problem');
   check(hy.killed, 'enough body damage kills the hydra');
+  /* capsule power-ups (hold fire and auto-fire off so stray bullets do not touch the test enemies) */
+  const pw = await p.evaluate(async () => { const ms = window.__ms, G = ms.G, sl = t => new Promise(r => setTimeout(r, t)), me = G.players[0], out = {};
+    me.auto = false; ms.input(0, { fire: false }); G.bullets = [];
+    G.qOpen = false;  /* no catches while we watch the bubbles; the same bubbles are compared before and after */
+    const live = () => G.bubbles.filter(b => b.state === 'live' && b.y > 0);
+    for (let k = 0; k < 40 && live().length < 2; k++) await sl(100);
+    const L = live(), y0 = L.map(b => b.y); ms.givePower(0, 'freeze'); await sl(400);
+    out.frozen = G.pw.freeze > 0 && L.length > 0 && L.every((b, i) => Math.abs(b.y - y0[i]) < .5);
+    G.pw.freeze = 0; await sl(300); out.thawed = L.some((b, i) => b.y > y0[i] + 5 || b.y < y0[i] - 100); G.qOpen = true;
+    ms.givePower(0, 'x2'); out.x2 = ms.scoreMul() === 2; G.glowT = 5; out.x4 = ms.scoreMul() === 4; G.glowT = 0; G.pw.x2 = 0;
+    ms.givePower(0, 'over'); me.auto = true; me.fireT = 0; await sl(150); me.auto = false; out.over = me.pw.over > 0 && G.bullets.some(b => b.pierce === 1); me.pw.over = 0; G.bullets = [];
+    ms.givePower(0, 'wing'); out.wing = ms.drones(0) === 1; me.auto = true; await sl(400); out.droneFires = G.bullets.some(b => b.drone);
+    me.auto = false; G.bullets = []; await sl(400); out.droneHolds = !G.bullets.some(b => b.drone); me.pw.wing = 0;
+    me.up.shield = 0; me.shieldOn = false; ms.givePower(0, 'shield'); const h0 = me.hearts; out.shieldOn = me.shieldOn; me.inv = 0; ms.hitPlayer(0); out.shieldHeld = me.hearts === h0 && !me.shieldOn; me.inv = 0;
+    me.charge = .2; ms.givePower(0, 'cell'); out.cell = me.charge >= .69;
+    me.bombs = 0; me.maxBombs = 2; ms.givePower(0, 'bomb'); out.bomb = me.bombs === 1;
+    out.caps = G.stats.caps; return out; });
+  check(pw.frozen && pw.thawed, 'Freeze stops the bubbles and they fall again after ' + JSON.stringify(pw));
+  check(pw.x2 && pw.x4, 'Double Points gives ×2 and ×4 with Glow Mode');
+  check(pw.over, 'Overdrive makes piercing bullets');
+  check(pw.wing && pw.droneFires && pw.droneHolds, 'Wingman adds a drone that shoots only while the ship fires');
+  check(pw.shieldOn && pw.shieldHeld, 'a Shield capsule works without the upgrade and absorbs one hit');
+  check(pw.cell && pw.bomb && pw.caps === 7, 'Laser Cell and Bomb capsules apply, 7 power-ups counted (' + pw.caps + ')');
+  /* the Bubble Snatcher, asteroids, a swarm, an astronaut and the Mothership */
+  const en = await p.evaluate(async () => { const ms = window.__ms, G = ms.G, sl = t => new Promise(r => setTimeout(r, t)), me = G.players[0], out = {}, cv = document.querySelector('#cv'), W = cv.clientWidth, H = cv.clientHeight;
+    const sn = ms.spawnSnatcher(); sn.x = W / 2; sn.y = 60;
+    let held = null; for (let k = 0; k < 70 && !held; k++) { await sl(100); held = G.bubbles.find(b => b.state === 'held'); }
+    out.held = !!held && held.by === sn && sn.mode === 'flee';
+    ms.damage(sn, 5); await sl(60); out.freed = !!held && held.state === 'live' && !held.by && sn.dead === true && G.stats.snatchers === 1;
+    const big = ms.spawnRock(); big.x = W / 2; big.y = H * .4; big.vx = 0; big.vy = 0;
+    ms.damage(big, 3); await sl(60); const smalls = G.enemies.filter(o => o.kind === 'rock' && !o.big); out.split = big.dead === true && smalls.length >= 2;
+    const s = smalls[0]; const h0 = me.hearts; me.inv = 0; s.x = me.x; s.y = me.y; s.vx = 0; s.vy = 0; await sl(120); out.bump = me.hearts === h0 - 1 && s.hp <= 0;
+    for (const o of G.enemies) if (o.kind === 'rock') o.hp = 0; await sl(60);
+    const id = ms.spawnSwarm(); const bees = G.enemies.filter(o => o.kind === 'bee' && o.swarm === id); out.bees = bees.length === 5;
+    const sc0 = G.score, c0 = G.pickups.filter(k => k.kind === 'cap').length; G.chain = 0; G.lastCm = 1; G.streak = 0;
+    for (const b of bees) ms.damage(b, 1); await sl(60);
+    out.chain = G.chain === 5 && ms.chainMul() === 2; out.swarmBonus = G.score - sc0 >= 520 && G.pickups.filter(k => k.kind === 'cap').length >= c0 + 1; out.gain = G.score - sc0;
+    const a = ms.spawnAstro(); a.x = me.x; a.y = me.y; await sl(120); out.rescued = G.stats.rescues === 1 && !G.pickups.includes(a);
+    const b = ms.spawnBoss(); b.y = b.home; await sl(120); const hp0 = b.hp, hit = (x, y, d) => ms.bossHit(b, { x, y, dmg: d });
+    hit(b.x, b.y, 2); out.armored = b.hp === hp0 && !b.open;
+    for (const t of b.turrets) hit(t.x, t.y, 20); await sl(120); out.open = b.open === true && b.turrets.every(t => t.hp <= 0);
+    hit(b.x, b.y, 2); out.coreHit = b.hp === hp0 - 2;
+    hit(b.x, b.y, 500); await sl(120); out.dead = b.dead === true && !G.enemies.includes(b);
+    return out; });
+  check(en.held && en.freed, 'the Snatcher grabs a bubble and drops it when shot ' + JSON.stringify(en));
+  check(en.split && en.bump, 'a big asteroid splits in two and a small one costs a heart on contact');
+  check(en.bees && en.chain && en.swarmBonus, 'five bees, a ×2 chain, and the full-swarm bonus with a capsule (+' + en.gain + ')');
+  check(en.rescued, 'flying over an astronaut rescues it');
+  check(en.armored && en.open && en.coreHit && en.dead, 'the Mothership is armored until both turrets die, then the core takes hits and it goes down');
+  /* the Bonus Blitz, then an evolution card */
+  const bz = await p.evaluate(async () => { const ms = window.__ms, G = ms.G, sl = t => new Promise(r => setTimeout(r, t)), me = G.players[0], out = {};
+    ms.startBlitz(); out.phase = G.phase === 'blitz'; await sl(1200);
+    out.bees = G.enemies.filter(e => e.blitz).length >= 8; await sl(1000); out.quiet = G.eshots.length === 0;
+    const h0 = me.hearts; me.inv = 0; ms.hitPlayer(0); out.safe = me.hearts === h0;
+    G.pickups = []; let killed = 0;  /* older capsules may still be falling off-screen; count only what the Blitz drops */
+    for (let k = 0; k < 150 && G.phase === 'blitz'; k++) { for (const e of G.enemies) if (e.blitz && !e.flee && e.hp > 0 && !e.dead) { ms.damage(e, 1); killed++; } await sl(100); }
+    out.killed = killed; out.perfect = G.stats.blitzPerfect === 1 && G.stats.blitzKills === 16; out.blitzKills = G.stats.blitzKills;
+    out.cap = G.pickups.some(k => k.kind === 'cap');
+    for (let k = 0; k < 80 && G.phase !== 'run'; k++) await sl(100); out.wave = G.wave; return out; });
+  check(bz.phase && bz.bees && bz.quiet && bz.safe, 'the Blitz spawns bees that never fire and nothing hurts ' + JSON.stringify(bz));
+  check(bz.perfect && bz.cap, 'shooting all 16 in the Blitz is a perfect with a capsule ' + JSON.stringify(bz));
+  check(bz.wave === 2, 'after the Blitz, wave 2 begins (' + bz.wave + ')');
+  const ev = await p.evaluate(async () => { const ms = window.__ms, G = ms.G, sl = t => new Promise(r => setTimeout(r, t)), me = G.players[0], out = {};
+    for (let k = 0; k < 60 && G.phase !== 'run'; k++) await sl(100);
+    for (let k = (me.up.rapid | 0); k < 3; k++) ms.applyUp(0, 'rapid'); for (let k = (me.up.power | 0); k < 2; k++) ms.applyUp(0, 'power');
+    ms.openUpgrade(); out.first = G.offer[0] === 'plasma'; out.gold = !!document.querySelector('#upCards .up-card.evo'); out.n = G.offer.length;
+    ms.pickUp(0); out.plasma = me.up.plasma === 1; await sl(60); out.phase = G.phase; return out; });
+  check(ev.first && ev.gold && ev.plasma && ev.n === 3, 'maxed Rapid Fire + Power Shot offers the Plasma Cannon evolution first and it can be taken ' + JSON.stringify(ev));
   await p.keyboard.press('p'); await wait(150);
   check(await p.evaluate(() => !document.querySelector('#pauseMenu').hidden && window.__ms.G.paused), 'P pauses');
   await p.click('#quitBtn'); await wait(300);
@@ -161,6 +241,7 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
 
   /* 4. two players on one keyboard: separate ships, a rescue, and four cards to share */
   await p.click('#mapBtn'); await wait(200);
+  check(await p.evaluate(() => { const ms = window.__ms, st = document.querySelector('#stage'); ms.startWorld(0, 1); const a = st.style.background; ms.startWorld(1, 1); const b = st.style.background; return a.length > 0 && a !== b; }), 'each sector has its own backdrop');
   await p.evaluate(() => { window.__ms.setCoop(['riley', 'charlie']); window.__ms.startWorld(0, 1); }); await wait(300);
   await until(() => p.evaluate(() => window.__ms.G && window.__ms.G.phase === 'run'), 6000);
   s = await snap(p);
@@ -249,10 +330,12 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
   await p.touchscreen.touchStart(sx, sy); for (let i = 1; i <= 8; i++) { await p.touchscreen.touchMove(sx - i * 14, sy - i * 10); await wait(40); } await wait(200); await p.touchscreen.touchEnd();
   const s2 = await snap(p);
   check(s2 && s2.players[0].x < s.players[0].x - 40 && s2.players[0].y < s.players[0].y - 20, `a drag moves the ship in both axes (${Math.round(s.players[0].x)},${Math.round(s.players[0].y)} to ${Math.round(s2.players[0].x)},${Math.round(s2.players[0].y)})`);
-  check(s2 && !s2.players[0].firing, 'no auto-fire: the ship holds fire');
+  check(s2 && !s2.players[0].firing, 'with auto-fire off the ship holds fire');
   const fb = await p.evaluate(() => { const r = document.querySelector('#padF').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
   await p.touchscreen.touchStart(fb.x, fb.y); await wait(250); const s3 = await snap(p); await p.touchscreen.touchEnd();
   check(s3 && s3.players[0].firing, 'holding FIRE shoots');
+  await p.evaluate(() => { window.__ms.G.players[0].auto = true; }); await wait(200);
+  check((await snap(p)).players[0].firing, 'with auto-fire on a phone shoots with nothing held');
   await p.close();
 
   check(errs.length === 0, 'no page errors: ' + errs.join(' | '));
