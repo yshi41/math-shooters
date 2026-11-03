@@ -152,7 +152,7 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
     for (const q of G.players) { q.maxHearts = q.hearts = 20; } G.correct = -50; /* keep the wave from clearing mid-check */
     const e = ms.spawnHydra(); e.y = e.home; await sl(150);
     const shot = (x, y) => ms.hydraHit(e, { x, y, dmg: 1 });
-    const out = { arms: e.arms.length, oneRight: e.arms.filter(m => m.ok).length === 1 && e.arms.some(m => m.ok && m.v === e.q.ans) };
+    const out = { arms: e.arms.length, oneRight: e.arms.filter(m => m.ok).length === 1 && e.arms.some(m => m.ok && m.v === e.q.ans), chip: document.querySelector('#eq2').textContent.includes(e.q.text) };
     const hp0 = e.hp; shot(e.x, e.y); out.armored = e.hp === hp0 && !(e.open > 0);
     const wrong = e.arms.find(m => !m.ok), wv = wrong.v; shot(wrong.x, wrong.y); out.wrongGone = wrong.state === 'grow' && !(e.open > 0) && e.hp === hp0;
     await sl(1300); out.wrongBack = wrong.state === 'on' && wrong.v === wv;
@@ -162,7 +162,7 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
     for (let k = 0; k < 60 && !e.dead; k++) { const r = e.arms.find(m => m.ok); if (r.state === 'on') shot(r.x, r.y); shot(e.x, e.y); await sl(30); }
     await sl(150); out.killed = e.dead === true && !G.enemies.includes(e);
     return out; });
-  check(hy.arms === 3 && hy.oneRight, 'a hydra spawns with 3 arms and exactly one right answer ' + JSON.stringify(hy));
+  check(hy.arms === 3 && hy.oneRight && hy.chip, 'a hydra spawns with 3 arms, one right answer, and its problem in the HUD chip ' + JSON.stringify(hy));
   check(hy.armored, 'the hydra body is armored before the right arm is shot');
   check(hy.wrongGone && hy.wrongBack, 'a wrong arm comes off and grows back with the same number');
   check(hy.open && hy.bodyHit, 'shooting the right arm opens the body and the body takes damage');
@@ -336,20 +336,31 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
   await p.tap('[data-w="add-1"]'); await wait(300);
   await until(() => p.evaluate(() => window.__ms.G && window.__ms.G.phase === 'run'), 6000);
   check(!(await wide()), 'no sideways scroll in a run');
-  check(await p.evaluate(() => { const pad = document.querySelector('#lanePad'); return getComputedStyle(pad).display === 'grid' && [...pad.querySelectorAll('button:not([hidden])')].every(b => b.getBoundingClientRect().height >= 48); }), 'the pad shows with finger-sized buttons');
-  check(await p.evaluate(() => { const st = document.querySelector('#stage').getBoundingClientRect(), pad = document.querySelector('#lanePad').getBoundingClientRect(); return pad.bottom <= window.innerHeight + 1 && st.height >= 380; }), 'the stage and pad fit the phone screen');
+  check(await p.evaluate(() => { const ui = document.querySelector('#touchUI'); return !document.querySelector('#lanePad') && getComputedStyle(ui).display !== 'none' && [...ui.querySelectorAll('.t-btn:not([hidden])')].every(b => b.getBoundingClientRect().height >= 48) && !document.querySelector('#tbFire').hidden; }), 'the touch buttons show, finger-sized, FIRE included while auto-fire is off, and the bottom pad is gone');
+  check(await p.evaluate(() => { const st = document.querySelector('#stage').getBoundingClientRect(); return st.bottom <= window.innerHeight + 1 && st.height >= 380; }), 'the stage fits the phone screen');
+  check(await p.evaluate(() => { const eq = document.querySelector('#eq').getBoundingClientRect(), h = document.querySelector('#hearts').getBoundingClientRect(), st = document.querySelector('#stage').getBoundingClientRect(); return eq.top <= h.top + 1 && eq.top - st.top < 60; }), 'the equation stays at the top of a phone screen');
   s = await snap(p);
   const cvBox = await p.evaluate(() => { const r = document.querySelector('#cv').getBoundingClientRect(); return { left: r.left, top: r.top, w: r.width, h: r.height }; });
-  const sx = cvBox.left + cvBox.w * .5, sy = cvBox.top + cvBox.h * .85;
-  await p.touchscreen.touchStart(sx, sy); for (let i = 1; i <= 8; i++) { await p.touchscreen.touchMove(sx - i * 14, sy - i * 10); await wait(40); } await wait(200); await p.touchscreen.touchEnd();
+  /* the ghost stick: a thumb on the right half, pushed up-left, flies the ship up-left */
+  const sx = cvBox.left + cvBox.w * .75, sy = cvBox.top + cvBox.h * .8;
+  await p.touchscreen.touchStart(sx, sy); for (let i = 1; i <= 8; i++) { await p.touchscreen.touchMove(sx - i * 14, sy - i * 10); await wait(40); } await wait(200);
+  const mid = await p.evaluate(() => !!window.__ms.G.players[0].stick); await p.touchscreen.touchEnd();
   const s2 = await snap(p);
-  check(s2 && s2.players[0].x < s.players[0].x - 40 && s2.players[0].y < s.players[0].y - 20, `a drag moves the ship in both axes (${Math.round(s.players[0].x)},${Math.round(s.players[0].y)} to ${Math.round(s2.players[0].x)},${Math.round(s2.players[0].y)})`);
+  check(mid && s2 && s2.players[0].x < s.players[0].x - 40 && s2.players[0].y < s.players[0].y - 20, `a thumb on the right half makes a ghost stick that flies the ship (${Math.round(s.players[0].x)},${Math.round(s.players[0].y)} to ${Math.round(s2.players[0].x)},${Math.round(s2.players[0].y)})`);
   check(s2 && !s2.players[0].firing, 'with auto-fire off the ship holds fire');
-  const fb = await p.evaluate(() => { const r = document.querySelector('#padF').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+  const fb = await p.evaluate(() => { const r = document.querySelector('#tbFire').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
   await p.touchscreen.touchStart(fb.x, fb.y); await wait(250); const s3 = await snap(p); await p.touchscreen.touchEnd();
-  check(s3 && s3.players[0].firing, 'holding FIRE shoots');
-  await p.evaluate(() => { window.__ms.G.players[0].auto = true; }); await wait(200);
-  check((await snap(p)).players[0].firing, 'with auto-fire on a phone shoots with nothing held');
+  check(s3 && s3.players[0].firing, 'holding the FIRE button shoots');
+  await p.evaluate(() => window.__ms.setAuto(true)); await wait(200);
+  check(await p.evaluate(() => window.__ms.G.players[0].firing && document.querySelector('#tbFire').hidden), 'with auto-fire on a phone shoots with nothing held and FIRE hides');
+  /* swap the sides: the buttons move right, only the left half answers as the stick */
+  await p.evaluate(() => window.__ms.setStick(true)); await wait(100);
+  const sw = { cls: await p.evaluate(() => document.querySelector('#touchUI').classList.contains('swap') && document.querySelector('#touchUI .t-btns').getBoundingClientRect().left > window.innerWidth / 2) };
+  await p.touchscreen.touchStart(cvBox.left + cvBox.w * .8, cvBox.top + cvBox.h * .5); await wait(120); sw.rightIgnored = !(await p.evaluate(() => !!window.__ms.G.players[0].stick)); await p.touchscreen.touchEnd();
+  await p.touchscreen.touchStart(cvBox.left + cvBox.w * .25, cvBox.top + cvBox.h * .5); await wait(120); sw.leftStick = await p.evaluate(() => !!window.__ms.G.players[0].stick); await p.touchscreen.touchEnd();
+  check(sw.cls && sw.rightIgnored && sw.leftStick, 'swapping puts the buttons on the right and the stick on the left ' + JSON.stringify(sw));
+  await until(() => p.evaluate(() => window.__ms.net.idle()));
+  check(mob.store.riley.state.stickLeft === true && mob.store.riley.state.autoFire === true, 'the stick side and auto-fire are saved with the profile');
   await p.close();
 
   check(errs.length === 0, 'no page errors: ' + errs.join(' | '));

@@ -62,7 +62,7 @@ Teamwork bonus; ships close together link a beam that pops enemy shots; after a 
 from four. Both kids' saves earn the stars and treats.
 
 Controls (solo): arrow keys or W A S D to fly, Space or left Ctrl to shoot (or leave Auto-fire on), left Shift for the laser, B for a bomb, P or Esc to pause. On a touch screen
-drag anywhere on the stage to fly, tap the bombs or laser chip to use them; the pad has ◀ ▶ FIRE BOMB LASER. Auto-fire is a per-player
+a ghost thumbstick appears under your thumb on the right half of the stage and the ship follows it (the base slides along if the thumb goes past the rim); LASER and BOMB sit bottom-left, FIRE too while Auto-fire is off; Settings can put the stick on the left (`stickLeft`, saved with the profile). Auto-fire is a per-player
 setting saved with the profile (`autoFire`, default on); with it off, Space, Enter or left Ctrl shoots solo (Ctrl+W would close the tab, so W is locked in full screen where the browser allows it, and leaving mid-world asks first); in two-player F shoots for player 1 and . for player 2, and each ship follows its own player's setting. Drones and missiles fire whenever the ship does. On a computer the game goes
 full screen when a world starts (Esc leaves it; the pause menu has a Full screen button to go back in).
 

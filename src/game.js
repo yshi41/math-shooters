@@ -1,6 +1,6 @@
 (()=>{
 'use strict';
-const BUILD='2026-11-03.2';
+const BUILD='2026-11-03.3';
 const $=s=>document.querySelector(s);
 const rand=(a,b)=>a+Math.random()*(b-a);
 const ri=n=>Math.floor(Math.random()*n);
@@ -228,11 +228,11 @@ const Snd={ctx:null,on:true,
 /* ---------- saves (online only) ---------- */
 let screen='menu',ready=false,saveMode='loading';
 const saves={};let player=null,coopIds=null;
-function blank(){return {cur:0,games:0,stars:{},best:{},skill:{},facts:{},ops:{},medals:{},perks:[],ups:{},autoFire:true,missions:{active:[],done:0,next:0},coop:{played:0,wins:0}}}
+function blank(){return {cur:0,games:0,stars:{},best:{},skill:{},facts:{},ops:{},medals:{},perks:[],ups:{},autoFire:true,stickLeft:false,missions:{active:[],done:0,next:0},coop:{played:0,wins:0}}}
 /* deep copy first: the claude.ai db hands back frozen snapshots, and the end-of-world bookkeeping writes into these objects */
 function normalize(d){const o=isObj(d)?JSON.parse(JSON.stringify(d)):{};const b=blank();b.cur=Math.max(0,o.cur|0);b.games=o.games|0;
   for(const k of ['stars','best','skill','facts','ops','medals'])b[k]=isObj(o[k])?o[k]:{};
-  b.autoFire=o.autoFire!==false;
+  b.autoFire=o.autoFire!==false;b.stickLeft=o.stickLeft===true;
   const ms=isObj(o.missions)?o.missions:{};b.missions={active:(Array.isArray(ms.active)?ms.active:[]).filter(m=>isObj(m)&&MISSION_BY[m.id]).map(m=>({id:m.id,n:Math.max(0,m.n|0)})).slice(0,3),done:Math.max(0,ms.done|0),next:Math.max(0,ms.next|0)};
   b.perks=Array.isArray(o.perks)?o.perks.filter(x=>PERKS[x]):[];
   if(isObj(o.ups))for(const id of UP_ORDER){const n=Math.min(UPGRADES[id].max,Math.max(0,o.ups[id]|0));if(n)b.ups[id]=n}
@@ -323,9 +323,15 @@ function buyPerk(pk){const p=P();if(!pk||p.perks.includes(pk.id)||p.cur<pk.price
 function tog(id,get,set){const b=$(id);b.onclick=()=>{Snd.init();set(!get());b.setAttribute('aria-pressed',String(get()));Snd.click()}}
 tog('#tSound',()=>Snd.on,v=>Snd.on=v);
 /* auto-fire (back since 11/3): per player, saved with the profile; the fire key always works too */
-function setAuto(v){const p=P();p.autoFire=!!v;persist();if(G)for(const q of G.players)if(q.id===player)q.auto=p.autoFire;$('#tAuto').setAttribute('aria-pressed',String(p.autoFire));$('#pAuto').setAttribute('aria-pressed',String(p.autoFire))}
+function setAuto(v){const p=P();p.autoFire=!!v;persist();if(G)for(const q of G.players)if(q.id===player)q.auto=p.autoFire;$('#tAuto').setAttribute('aria-pressed',String(p.autoFire));$('#pAuto').setAttribute('aria-pressed',String(p.autoFire));applyTouchLayout()}
 tog('#tAuto',()=>P().autoFire!==false,setAuto);
 tog('#pAuto',()=>P().autoFire!==false,setAuto);
+/* touch layout: the thumbstick side (right unless the profile says stickLeft), the button cluster on the other side, FIRE only without auto-fire */
+function applyTouchLayout(){const p=player?P():blank(),left=p.stickLeft===true;$('#touchUI').classList.toggle('swap',left);$('#tbFire').hidden=!G||G.players[0].auto;
+  $('#tStick').setAttribute('aria-pressed',String(left));$('#pStick').setAttribute('aria-pressed',String(left))}
+function setStick(v){P().stickLeft=!!v;persist();applyTouchLayout()}
+tog('#tStick',()=>P().stickLeft===true,setStick);
+tog('#pStick',()=>P().stickLeft===true,setStick);
 $('#switchBtn').onclick=()=>{Snd.click();show('menu');renderMenu()};
 $('#playBtn').onclick=()=>{Snd.init();Snd.click();coopIds=null;openMap()};
 $('#endlessBtn').onclick=()=>{Snd.init();Snd.click();coopIds=null;startWorld('endless',1)};
@@ -362,7 +368,7 @@ function sizeStage(){const r=stage.getBoundingClientRect();W=Math.max(280,r.widt
 function colX(c){return W*(c+.5)/G.cols}
 function mkPlayer(i,id){const s=PF(id),perks=s.perks;
   const p={i,id,col:i?'#fb923c':'#38bdf8',x:0,y:0,vx:0,mvx:0,mvy:0,hearts:5,maxHearts:5,bombs:1,maxBombs:1,up:{},fireInt:.33,fireT:0,speedMul:1,magnetR:0,lucky:0,shieldOn:false,shieldT:0,inv:0,down:false,downT:0,out:false,catches:0,held:{},target:null,firing:false,wind:perks.includes('p_revive'),perks,charge:1,laser:0,laserT:0,muzzle:0,
-    auto:s.autoFire!==false,pw:{over:0,wing:0},longMul:1,chargeMul:1,laserLen:LASER_T,droneT:0,missileT:0};
+    auto:s.autoFire!==false,stick:null,pw:{over:0,wing:0},longMul:1,chargeMul:1,laserLen:LASER_T,droneT:0,missileT:0};
   if(perks.includes('p_heart')){p.maxHearts=6;p.hearts=6}if(perks.includes('p_bomb')){p.maxBombs=2;p.bombs=2}return p}
 function startWorld(si,wi){Snd.init();Snd.click();goFull();const endless=si==='endless';if(endless){wi=1;si=0}const s=endless?ENDLESS:SECTORS[si],ids=coopIds||[player];lastWorld=[endless?'endless':si,wi];
   const ramp=endless?endlessRamp(1):WORLD_RAMP[wi-1],tier=endless?2:s.id==='mix'?MIX_TIERS[wi-1]:ramp.tier,grade=Math.min(...ids.map(id=>kid(id).grade));
@@ -384,7 +390,7 @@ function startWorld(si,wi){Snd.init();Snd.click();goFull();const endless=si==='e
   for(let i=0;i<20;i++)G.dots.push({x:Math.random(),y:Math.random(),s:rand(1,3)});
   $('#eq').className='eq';$('#eq').textContent='Ready?';updateHUD();
   banner(endless?'Endless':`${s.name} · World ${wi}`,endless?'How many waves can you clear?':G.coop?'Fly into the right answer together!':'Fly into the right answer!');
-  $('#gameHint').textContent=G.coop?'P1: W A S D to fly, F to shoot, left Shift laser, Q bomb · P2: arrow keys, . or right Ctrl to shoot, right Shift laser, / bomb · auto-fire follows each player’s setting · P to pause':'Arrow keys or W A S D to fly · it shoots on its own (Space or left Ctrl too) · left Shift for the laser · B for a bomb · P to pause'}
+  applyTouchLayout();$('#gameHint').textContent=G.coop?'P1: W A S D to fly, F to shoot, left Shift laser, Q bomb · P2: arrow keys, . or right Ctrl to shoot, right Shift laser, / bomb · auto-fire follows each player’s setting · P to pause':'Arrow keys or W A S D to fly · it shoots on its own (Space or left Ctrl too) · left Shift for the laser · B for a bomb · P to pause'}
 function recompute(p){const u=p.up;p.fireInt=[.33,.25,.2,.16][Math.min(3,u.rapid|0)];p.speedMul=Math.pow(1.2,u.speed|0)*(p.perks.includes('p_grip')?1.15:1);
   p.magnetR=Math.max(p.perks.includes('p_magnet')?100:0,[0,120,200][Math.min(2,u.magnet|0)]);p.lucky=u.lucky|0;
   p.longMul=1+.3*(u.long|0);p.chargeMul=[1,.8,.65][Math.min(2,u.battery|0)];p.laserLen=LASER_T+.5*(u.battery|0);
@@ -424,7 +430,7 @@ function catchBubble(p,b){const q=G.q;if(!q||!G.qOpen)return;G.qOpen=false;
   else{b.state='bad';b.hold=.3;G.wrongs++;G.streak=0;endGlow();G.log.push({q,ok:false});G.missed.push(q);
     for(const o of G.bubbles)if(o!==b&&(o.state==='live'||o.state==='held')){releaseHeld(o);if(o.ok){o.state='hint';o.hold=1.4}else{o.state='fade';o.hold=0}}
     puff(b.x,b.y);G.shake=12;G.flash=.3;G.flashCol='255,110,110';Snd.wrong();adapt(-.8,'slow');
-    float(`${q.text} = ${q.ans}`,W/2,H*.42,'#fff',34);$('#eq').className='eq miss';$('#eq').innerHTML=eqDone(q);
+    float(`= ${q.ans}`,b.x,b.y-44,'#fff',26);$('#eq').className='eq miss';$('#eq').innerHTML=eqDone(q);
     loseHeart(p);p.inv=1.2;G.nextQAt=G.t+1.6}
   updateHUD()}
 function updateBubbles(dt){const fz=G.pw.freeze>0,v=fz?0:bubbleSpeed()*(G.pw.warp>0?.5:1);const live=G.bubbles.filter(b=>b.state==='live');
@@ -523,7 +529,7 @@ function updateSnatch(e,edt){const sp=170*G.bs;e.ph+=edt;
   else{e.y-=220*edt;if(e.y<-80)e.gone=true}}
 function escapeWith(e){const b=e.held;e.held=null;e.gone=true;
   if(b&&b.state==='held'){b.by=null;b.state='live';b.y=-G.r-rand(0,H*.08);const live=G.bubbles.filter(o=>o!==b&&o.state==='live'),free=[];for(let c=0;c<G.cols;c++)if(!live.some(o=>o.col===c))free.push(c);if(free.length)b.col=pickOne(free);
-    float('It got away! The bubble is back at the top',W/2,H*.3,'#fff',20)}}
+    float('It got away! Bubble back on top',colX(b.col),120,'#fff',18)}}
 /* a swarm of bees on a sine path (Galaga formations); only the leader shoots; all of them down is a bonus */
 function spawnSwarm(n,blitz){n=n||5;const side=ri(2),id=++G.swarmN,y0=H*rand(.18,.32),amp=H*.08,ph=rand(0,TAU);G.swarms[id]={n,killed:0,blitz:!!blitz};
   const lead=blitz?10:100;if(!blitz)warn(side,y0);
@@ -531,7 +537,7 @@ function spawnSwarm(n,blitz){n=n||5;const side=ri(2),id=++G.swarmN,y0=H*rand(.18
   if(!blitz)float('Bzzz!',side?W-70:70,y0+40,'#fde68a',20);return id}
 function leadBee(id){return G.enemies.find(o=>o.kind==='bee'&&o.swarm===id&&!o.flee&&o.hp>0)}
 /* a lost astronaut (Sky Force survivors): fly over to rescue; three per world make the Rescuer medal */
-function spawnAstro(){G.stats.astroN++;const k={kind:'astro',x:rand(50,W-50),y:-20,vy:26*G.bs,ph:rand(0,TAU),wob:rand(-25,25)};G.pickups.push(k);float('Lost astronaut! Fly over to rescue',W/2,H*.25,'#fff',20);return k}
+function spawnAstro(){G.stats.astroN++;const k={kind:'astro',x:rand(50,W-50),y:-20,vy:26*G.bs,ph:rand(0,TAU),wob:rand(-25,25)};G.pickups.push(k);float('Astronaut! Fly over to rescue',k.x,120,'#fff',18);return k}
 /* the Mothership guards world 6 of the odd sectors: two turrets first, then the core opens and it sends crashers down */
 function spawnBoss(){const hp=10+2*G.si,r=70*G.bs,thp=3+Math.floor(G.si/2);
   const e={kind:'boss',x:W/2,y:-120,vy:40*G.bs,home:Math.max(H*.2,120),hp,max:hp,r,fireT:2.5,spawnT:5,flash:0,score:500,ph:rand(0,TAU),noteT:0,open:false,
@@ -563,14 +569,14 @@ function hydraOK(){return G.phase==='run'&&!bossWave()&&(G.wave>=2||G.wi>=3)}
 function spawnHydra(){const angs=G.wi>=4?[-1.25,-.42,.42,1.25]:[-1,0,1],hp=6+G.wi;
   const e={kind:'hydra',x:W/2,y:-90,vy:70*G.bs,r:44*G.bs,home:Math.max(H*.24,140),hp,max:hp,fireT:3,flash:0,score:400,ph:rand(0,TAU),open:0,miss:0,q:null,noteT:0,
     arms:angs.map(a=>({a,v:0,ok:false,state:'on',g:1,x:W/2,y:-90}))};
-  hydraProblem(e);hydraArms(e);G.enemies.push(e);banner('Math Hydra!','Shoot off the arm with the answer');Snd.roar();return e}
+  hydraProblem(e);hydraArms(e);G.enemies.push(e);banner('Math Hydra!','Shoot off the arm with the answer');Snd.roar();updateHUD();return e}
 function hydraProblem(e){const q=MSMath.problem(G.sector.id,G.grade,G.tier,G,PF(G.ids[0]).facts);e.q=q;e.miss=0;
   const opts=shuffle(MSMath.choices(q,e.arms.length));e.arms.forEach((m,i)=>{m.v=opts[i];m.ok=opts[i]===q.ans})}
 /* where each pod sits: arms sway, and go limp (hanging lower) while the body is open */
 function hydraArms(e){const L=e.r+G.r*1.7;e.arms.forEach((m,i)=>{const limp=m.state==='limp',a=(limp?m.a*.45:m.a)+Math.sin(e.ph*1.6+i*1.7)*.13,len=L*(limp?.8:1);
   m.x=e.x+Math.sin(a)*len;m.y=e.y+Math.cos(a)*len})}
 function hydraRegrow(e){e.open=0;hydraProblem(e);for(const m of e.arms){m.g=m.state==='gone'?0:.4;m.state='grow'}
-  float('It grew back with a new problem!',e.x,e.y-e.r-24,'#bbf7d0',20);Snd.roar()}
+  float('It grew back with a new problem!',e.x,e.y-e.r-24,'#bbf7d0',20);Snd.roar();updateHUD()}
 function updateHydra(e,dt){e.ph+=dt;
   if(e.y<e.home)e.y=Math.min(e.home,e.y+e.vy*dt);else{const m=e.r+G.r*1.6;e.x=clamp(e.x+Math.cos(e.ph*.5)*W*.12*dt,m,W-m)}
   for(const m of e.arms)if(m.state==='grow'){m.g=Math.min(1,m.g+dt/.9);if(m.g>=1)m.state='on'}
@@ -620,11 +626,10 @@ function drawHydra(c,e,t){const fl=e.flash>0,open=e.open>0,r=e.r,pr=G.r*.78;c.sa
   const w=r*2,bx=-w/2,by=-r*1.32-16;c.fillStyle='rgba(0,0,0,.4)';c.beginPath();c.roundRect(bx-2,by-2,w+4,12,6);c.fill();
   c.fillStyle=e.hp/e.max>.5?'#22c55e':e.hp/e.max>.25?'#f5c842':'#ef4444';c.beginPath();c.roundRect(bx,by,w*Math.max(0,e.hp)/e.max,8,4);c.fill();
   c.restore()}
-/* the hydra's problem goes on its belly, drawn over the answer bubbles so it stays readable */
-function hydraLabel(c,e){const open=e.open>0,r=e.r,txt=open?`${e.q.text} = ${e.q.ans}`:`${e.q.text} = ?`,fs=Math.max(16,r*.42);c.save();c.translate(e.x,e.y);
-  c.font=cfont(fs);c.textAlign='center';c.textBaseline='middle';const tw=c.measureText(txt).width+fs*.9;
-  c.fillStyle=open?'rgba(21,128,61,.92)':'rgba(15,23,42,.86)';c.beginPath();c.roundRect(-tw/2,r*.32-fs*.72,tw,fs*1.44,fs*.5);c.fill();
-  c.strokeStyle='rgba(255,255,255,.85)';c.lineWidth=2;c.stroke();c.fillStyle='#fff';c.fillText(txt,0,r*.32+fs*.04);c.restore()}
+/* the hydra's problem: small text on its belly (no box, so the play field stays clear; Yan 11/3) and the readable copy in the HUD chip under the equation */
+function hydraLabel(c,e){const open=e.open>0,r=e.r,txt=open?`${e.q.text} = ${e.q.ans}`:`${e.q.text} = ?`,fs=Math.max(13,r*.3);c.save();c.translate(e.x,e.y);
+  c.font=cfont(fs);c.textAlign='center';c.textBaseline='middle';c.lineWidth=Math.max(3,fs*.2);c.strokeStyle=open?'rgba(21,128,61,.9)':'rgba(15,23,42,.85)';c.strokeText(txt,0,r*.32);c.fillStyle='#fff';c.fillText(txt,0,r*.32);c.restore()}
+function hydraChip(){const e=G.enemies.find(o=>o.kind==='hydra'&&!o.flee&&o.hp>0&&!o.dead);if(!e)return '';return e.open>0?`Hydra: ${e.q.text} = ${e.q.ans} · hit the body!`:`Hydra: ${e.q.text} = ?`}
 function fireEshot(e,ang,sp){G.eshots.push({x:e.x,y:e.y+e.r*.6,vx:Math.sin(ang)*sp,vy:Math.cos(ang)*sp,r:7})}
 function enemyFire(e){const sp=220*G.bs;
   if(e.kind==='tank'){for(const a of (e.angry?[-.7,-.35,0,.35,.7]:[-.44,0,.44]))fireEshot(e,a,sp)}
@@ -643,7 +648,7 @@ function updateEnemies(dt){const cap=Math.min(6,G.ramp.cap+(G.wave-1)),fz=G.pw.f
     if(snatchOK()&&!G.enemies.some(e=>e.kind==='snatch'&&!e.flee)){G.snatchT-=edt;if(G.snatchT<=0){spawnSnatcher();G.snatchT=18}}
     if(swarmOK()&&!G.enemies.some(e=>e.kind==='bee'&&!e.flee)){G.swarmT-=edt;if(G.swarmT<=0){spawnSwarm();G.swarmT=16}}
     G.astroT-=edt;if(G.astroT<=0&&G.stats.astroN<(G.endless?99:3)&&G.stats.astroN<G.wave){spawnAstro();G.astroT=99}
-    G.capT+=edt;if(G.capT>SUPPLY_T){dropCap(rand(40,W-40),-14);float('Supply drop!',W/2,H*.2,'#fff',20)}}
+    G.capT+=edt;if(G.capT>SUPPLY_T){const x=rand(40,W-40);dropCap(x,-14);float('Supply drop!',x,120,'#fff',18)}}
   for(const w of G.warns)w.t-=dt;G.warns=G.warns.filter(w=>w.t>0);
   for(const e of G.enemies){e.flash=Math.max(0,e.flash-dt);e.tele=false;
     if(e.flee){e.y-=400*dt;if(e.kind==='hydra')hydraArms(e);if(e.kind==='boss')bossTurrets(e);continue}
@@ -666,7 +671,7 @@ function killEnemy(e){if(e.dead)return;e.dead=true;e.hp=0;burst(e.x,e.y,e.kind==
   G.chain++;G.chainT=CHAIN_T;G.stats.kills++;G.stats.chainMax=Math.max(G.stats.chainMax,G.chain);const cm=chainMul();if(cm>G.lastCm){float(`Chain ×${cm}!`,e.x,e.y-56,'#fde68a',24);Snd.coin()}G.lastCm=cm;
   const pts=Math.round(e.score*mult()*cm*scoreMul());G.score+=pts;checkTop();float('+'+pts,e.x,e.y-30,'#fff',22);Snd.hit();
   if(e.kind==='tank'||e.kind==='hydra'||e.kind==='boss'){G.pickups.push({kind:'heart',x:e.x,y:e.y,vy:80});for(let i=0;i<4;i++)G.pickups.push({kind:'treat',x:e.x+rand(-30,30),y:e.y+rand(-10,10),vy:110*G.bs});dropCap(e.x,e.y+30);G.shake=16;
-    if(e.kind==='hydra'){G.stats.hydras++;for(const m of e.arms)if(m.state!=='gone')puff(m.x,m.y);banner('Hydra down!');Snd.win()}
+    if(e.kind==='hydra'){G.stats.hydras++;for(const m of e.arms)if(m.state!=='gone')puff(m.x,m.y);banner('Hydra down!');Snd.win();updateHUD()}
     else{G.stats.boss++;banner(e.kind==='boss'?'Mothership down!':'Tank down!');Snd.win();if(G.correct>=WAVE_N&&G.phase==='run')waveClear()}}
   else if(e.kind==='rock'){G.stats.rocks++;if(e.big){spawnRock(true,e.x-12,e.y,-rand(60,110)*G.bs);spawnRock(true,e.x+12,e.y,rand(60,110)*G.bs)}else rollDrop(e)}
   else if(e.kind==='snatch'){G.stats.snatchers++;if(e.held){const b=e.held;e.held=null;if(b.state==='held'){b.by=null;b.state='live';float('Dropped it!',b.x,b.y-44,'#bbf7d0',22)}}if(Math.random()<.5)dropCap(e.x,e.y);else rollDrop(e)}
@@ -690,7 +695,7 @@ function givePower(p,id){const pw=POWERS[id];if(!pw)return;G.stats.caps++;G.capT
   else if(id==='bomb'){if(p.bombs<p.maxBombs){p.bombs++;sub='+1 bomb'}else{G.score+=100;sub='+100 points'}}
   else{const t=pw.t*p.longMul;if(pw.global)G.pw[id]=Math.max(G.pw[id],t);else p.pw[id]=Math.max(p.pw[id],t);sub=`${Math.round(t)} seconds`;
     if(id==='freeze'){G.flash=.4;G.flashCol='125,211,252';G.eshots=[]}else if(id==='warp'){G.flash=.3;G.flashCol='167,139,250'}}
-  banner(pw.name,sub);burst(p.x,p.y,30);Snd.glow();updateHUD()}
+  float(pw.name,p.x,p.y-76,pw.col,26);float(sub,p.x,p.y-50,'#fff',16);burst(p.x,p.y,30);Snd.glow();updateHUD()}
 function useBomb(p){if(!G||G.paused||!active()||p.down||p.out||p.bombs<=0)return;p.bombs--;G.stats.bombs++;
   for(const e of G.enemies){if(e.flee||e.hp<=0)continue;if(e.kind==='tank'){e.hp-=3;e.flash=.3;if(e.hp<=0)killEnemy(e)}else if(e.kind==='hydra'){e.flash=.3;if(e.open>0){e.hp-=4;if(e.hp<=0)killEnemy(e)}}
     else if(e.kind==='boss'){e.flash=.3;let any=false;for(const t of e.turrets)if(t.hp>0){any=true;t.hp-=3;t.flash=.3;if(t.hp<=0)burst(t.x,t.y,30)}if(!any){e.hp-=3;if(e.hp<=0)killEnemy(e)}}
@@ -720,11 +725,12 @@ function updatePlayers(dt){
       if(p.downT<=0){p.out=true;p.down=false;float(`${kid(p.id).name} is out until the next wave`,W/2,H*.4,'#fff',20);if(G.players.every(q=>q.down||q.out)){G.phase='lost';G.endAt=G.t+3;banner('Game over',`Score ${G.score.toLocaleString()}`)}}
       for(const q of G.players)if(q!==p&&!q.down&&!q.out&&dist(p.x,p.y,q.x,q.y)<G.shipW*.9)revive(p,q);
       continue}
-    const sp=380*G.bs*p.speedMul;let dx=0,dy=0,wx=0,wy=0;const h=p.held;if(h.left)dx-=1;if(h.right)dx+=1;if(h.up)dy-=1;if(h.down)dy+=1;
-    if(p.target){const tx=p.target.x-p.x,ty=p.target.y-p.y,d=Math.hypot(tx,ty);if(d>1){const s=Math.min(sp*1.2,d*12);wx=tx/d*s;wy=ty/d*s}}
-    else{if(dx&&dy){dx*=.7071;dy*=.7071}wx=dx*sp;wy=dy*sp}
-    /* ease toward the wanted velocity so starts, stops and turns glide instead of snapping */
-    const k=1-Math.exp(-dt*(p.target?20:14));p.mvx+=(wx-p.mvx)*k;p.mvy+=(wy-p.mvy)*k;
+    const sp=440*G.bs*p.speedMul;let dx=0,dy=0,wx=0,wy=0;const h=p.held;
+    if(p.stick){dx=p.stick.x;dy=p.stick.y}else{if(h.left)dx-=1;if(h.right)dx+=1;if(h.up)dy-=1;if(h.down)dy+=1;if(dx&&dy){dx*=.7071;dy*=.7071}}
+    if(p.target){const tx=p.target.x-p.x,ty=p.target.y-p.y,d=Math.hypot(tx,ty);if(d>1){const s=Math.min(sp*1.2,d*14);wx=tx/d*s;wy=ty/d*s}}
+    else{wx=dx*sp;wy=dy*sp}
+    /* a short ease toward the wanted velocity (about 25 ms to speed, faster to a stop) so it feels snappy but not jittery (Yan 11/3: sluggish) */
+    const k=1-Math.exp(-dt*(p.target||p.stick?40:(dx||dy)?38:55));p.mvx+=(wx-p.mvx)*k;p.mvy+=(wy-p.mvy)*k;
     const px=p.x,nx=p.x+p.mvx*dt,ny=p.y+p.mvy*dt;p.x=clamp(nx,G.shipW/2,W-G.shipW/2);p.y=clamp(ny,H*.1,H-G.shipH/2);
     if(p.x!==nx)p.mvx=0;if(p.y!==ny)p.mvy=0;
     p.vx+=((p.x-px)/Math.max(dt,.001)-p.vx)*Math.min(1,dt*10);
@@ -771,13 +777,13 @@ function updateCombat(dt){const alive=shipsAlive(),rx=G.shipW*.3,fz=G.pw.freeze>
     if(k.y>H+20){k.dead=true;if(k.kind==='astro')float('The astronaut drifted away',k.x,H-40,'#fca5a5',18)}}
   G.pickups=G.pickups.filter(k=>!k.dead);}
 function collect(p,k){if(k.kind==='cap'){givePower(p,k.pu);return}
-  if(k.kind==='astro'){G.stats.rescues++;const pts=150*scoreMul();G.score+=pts;checkTop();float(`Rescued! +${pts}`,k.x,k.y-24,'#fff',22);banner('Astronaut saved!',`${G.stats.rescues} of 3`);Snd.win();burst(k.x,k.y,30);updateHUD();return}
+  if(k.kind==='astro'){G.stats.rescues++;const pts=150*scoreMul();G.score+=pts;checkTop();float(`Rescued! +${pts}`,k.x,k.y-24,'#fff',22);float(`${G.stats.rescues} of 3 astronauts`,k.x,k.y-50,'#fde68a',16);Snd.win();burst(k.x,k.y,30);updateHUD();return}
   if(k.kind==='heart'){if(p.hearts<p.maxHearts){p.hearts++;float('+1 heart',k.x,k.y-20,'#f87171',20)}else{G.score+=50;float('+50',k.x,k.y-20,'#fff',20)}}
   else{G.collected++;G.score+=10;float('+1',k.x,k.y-20,'#fde68a',18)}Snd.coin();burst(k.x,k.y,8);updateHUD()}
 
 /* bookkeeping */
 function adapt(d,why){const before=Math.floor(G.L);G.L=MSMath.adapt(G.L,d,G.warm);G.peakL=Math.max(G.peakL,G.L);const after=Math.floor(G.L);
-  if(after>before)float('Speed up!',W/2,H*.5,'#fff',22);else if(why==='slow'&&after<before)float('Slowing down a little',W/2,H*.5,'#fff',20)}
+  if(after>before)float('Speed up!',W/2,H*.2,'#fff',20);else if(why==='slow'&&after<before)float('Slowing down a little',W/2,H*.2,'#fff',18)}
 function milestone(){const b=MILESTONES[G.streak];if(!b)return;G.bonusTreats+=b;if(G.streak===5){G.glowT=8;banner('Glow Mode!',`double points · +${b} treats`)}else float(`${G.streak} in a row! +${b} treats`,W/2,H*.3,'#fde68a',24);Snd.glow()}
 function endGlow(){G.glowT=0}
 function checkTop(){if(G.topBeaten||G.top<=0||G.score<=G.top)return;G.topBeaten=true;banner('New top score!','Keep going!');Snd.glow()}
@@ -797,7 +803,8 @@ function updateHUD(){if(!G)return;
   put('#ups',G.players.map(p=>UP_ORDER.filter(id=>p.up[id]).map(id=>`<span style="color:${p.col}">${UPGRADES[id].tag}${p.up[id]>1?p.up[id]:''}</span>`).join('')).join('<span style="opacity:.4">|</span>'));
   const chips=[];for(const id in G.pw)if(G.pw[id]>0)chips.push([id,G.pw[id]]);for(const p of G.players)for(const id in p.pw)if(p.pw[id]>0)chips.push([id,p.pw[id]]);
   put('#powers',chips.map(([id,t])=>`<span style="color:${POWERS[id].col}">${POWERS[id].tag} ${Math.ceil(t)}s</span>`).join(''));
-  put('#score',G.score.toLocaleString());
+  put('#score',G.score.toLocaleString());put('#eq2',hydraChip());
+  const q0=G.players[0];put('#tbBomb',`BOMB<small>${'●'.repeat(q0.bombs)||'–'}</small>`);const lz=$('#tbLaser'),rdy=q0.charge>=1&&q0.laser<=0&&!q0.down&&!q0.out;if(lz.classList.contains('ready')!==rdy)lz.classList.toggle('ready',rdy);
   put('#combo',G.glowT>0?`Glow · ${G.streak} in a row`:G.streak>=2?`${G.streak} in a row · ×${mult()}`:G.chain>=3?`Chain ×${chainMul()}`:'');
   const tl=$('#topLbl'),cls='hud-small'+(G.topBeaten?' beat':'');if(tl.className!==cls)tl.className=cls;put('#topLbl',G.topBeaten?'New top score!':G.top?`Top ${G.top.toLocaleString()}`:'First try!')}
 function update(dt){G.t+=dt;G.waveT+=dt;
@@ -867,16 +874,16 @@ function drawShip(c,p,t){if(p.out)return;const w=G.shipW,h=G.shipH,u=p.up,col=p.
   c.fillStyle=gf;c.beginPath();c.moveTo(0,-h/2);c.bezierCurveTo(w*.21,-h*.28,w*.2,h*.2,w*.12,h*.36);c.lineTo(-w*.12,h*.36);c.bezierCurveTo(-w*.2,h*.2,-w*.21,-h*.28,0,-h/2);c.closePath();c.fill();
   c.strokeStyle=u.plasma?'#60a5fa':'rgba(15,23,42,.35)';c.lineWidth=u.plasma?2.5:1.5;c.stroke();
   /* laser cells on the tail, missile rails on the wings, a spark ring for Long Lasting, glowing tips for Starburst */
-  if(u.battery){c.save();c.fillStyle='#67e8f9';c.shadowColor='#67e8f9';c.shadowBlur=8+4*u.battery;for(const sx of [-.26,.26]){c.beginPath();c.roundRect(w*sx-w*.03,h*.3,w*.06,h*.12,2);c.fill()}c.restore()}
+  if(u.battery){c.fillStyle='rgba(103,232,249,.35)';for(const sx of [-.26,.26])dot(c,w*sx,h*.36,w*.07);c.fillStyle='#67e8f9';for(const sx of [-.26,.26]){c.beginPath();c.roundRect(w*sx-w*.03,h*.3,w*.06,h*.12,2);c.fill()}}
   if(u.missile||u.hive){c.fillStyle='#fdba74';for(const sx of [-.4,.4]){c.beginPath();c.roundRect(w*sx-w*.025,h*.05,w*.05,h*.2,2);c.fill();c.fillStyle='#ef4444';c.beginPath();c.moveTo(w*sx-w*.025,h*.05);c.lineTo(w*sx,h*-.01);c.lineTo(w*sx+w*.025,h*.05);c.closePath();c.fill();c.fillStyle='#fdba74'}}
   if(u.long){const n=4+2*u.long;c.fillStyle='rgba(253,230,138,.75)';for(let i=0;i<n;i++){const a=t*2+i*TAU/n;dot(c,Math.cos(a)*w*.62,Math.sin(a)*w*.62*.8,2)}}
-  if(u.starburst){c.save();c.fillStyle='#fef08a';c.shadowColor='#fef08a';c.shadowBlur=10;dot(c,-w*.5,h*.2,w*.05);dot(c,w*.5,h*.2,w*.05);c.restore()}
+  if(u.starburst){c.fillStyle='rgba(254,240,138,.4)';dot(c,-w*.5,h*.2,w*.1);dot(c,w*.5,h*.2,w*.1);c.fillStyle='#fef08a';dot(c,-w*.5,h*.2,w*.05);dot(c,w*.5,h*.2,w*.05)}
   /* canopy */
   const gc=c.createLinearGradient(0,-h*.32,0,h*.05);gc.addColorStop(0,'#bae6fd');gc.addColorStop(.45,'#1e3a8a');gc.addColorStop(1,'#0f172a');
   c.fillStyle=gc;ell(c,0,-h*.12,w*.095,h*.17);c.fill();
   c.fillStyle='rgba(255,255,255,.75)';ell(c,-w*.03,-h*.19,w*.025,h*.07);c.fill();
   /* power core for Power Shot */
-  const pw=u.power|0;if(pw){const pr=w*(.05+.02*pw)*(1+.15*Math.sin(t*8));c.save();c.shadowColor='#f0abfc';c.shadowBlur=12+6*pw;c.fillStyle='#fdf4ff';dot(c,0,h*.17,pr);c.fillStyle='rgba(232,121,249,.8)';dot(c,0,h*.17,pr*.6);c.restore()}
+  const pw=u.power|0;if(pw){const pr=w*(.05+.02*pw)*(1+.15*Math.sin(t*8));c.fillStyle='rgba(240,171,252,.35)';dot(c,0,h*.17,pr*2.2);c.fillStyle='#fdf4ff';dot(c,0,h*.17,pr);c.fillStyle='rgba(232,121,249,.8)';dot(c,0,h*.17,pr*.6)}
   /* wing-tip lights */
   const blink=(Math.floor(t*2)%2)?1:.3;c.fillStyle=`rgba(248,113,113,${blink})`;dot(c,-w*.48,h*.24,w*.035);c.fillStyle=`rgba(74,222,128,${1.3-blink})`;dot(c,w*.48,h*.24,w*.035);
   /* muzzle flash */
@@ -936,7 +943,7 @@ function drawBoss(c,e,t){const r=e.r,fl=e.flash>0;c.save();c.translate(e.x,e.y);
     const w=tr.r*2,x=tr.x-w/2,y=tr.y-tr.r-14;c.fillStyle='rgba(0,0,0,.4)';c.beginPath();c.roundRect(x-2,y-2,w+4,10,5);c.fill();c.fillStyle='#f5c842';c.beginPath();c.roundRect(x,y,w*Math.max(0,tr.hp)/tr.max,6,3);c.fill()}
   const w=r*1.6,x=e.x-w/2,y=e.y-r*.5-26;c.fillStyle='rgba(0,0,0,.4)';c.beginPath();c.roundRect(x-2,y-2,w+4,14,7);c.fill();c.fillStyle=e.hp/e.max>.5?'#22c55e':e.hp/e.max>.25?'#f5c842':'#ef4444';c.beginPath();c.roundRect(x,y,w*Math.max(0,e.hp)/e.max,10,5);c.fill()}
 function drawCap(c,k,t){const pw=POWERS[k.pu];if(!pw)return;c.save();c.translate(k.x,k.y);c.rotate(Math.sin(t*2+k.ph)*.18);
-  c.shadowColor=pw.col;c.shadowBlur=14+6*Math.sin(t*6+k.ph);c.fillStyle=pw.col;c.beginPath();c.roundRect(-19,-12,38,24,12);c.fill();c.shadowBlur=0;
+  c.fillStyle=shade(pw.col,0,.26+.1*Math.sin(t*6+k.ph));dot(c,0,0,27);c.fillStyle=pw.col;c.beginPath();c.roundRect(-19,-12,38,24,12);c.fill();
   c.fillStyle='rgba(255,255,255,.35)';c.beginPath();c.roundRect(-15,-9,30,8,4);c.fill();c.strokeStyle='#fff';c.lineWidth=2;c.beginPath();c.roundRect(-19,-12,38,24,12);c.stroke();
   c.font=cfont(14);c.textAlign='center';c.textBaseline='middle';c.lineWidth=3;c.strokeStyle='rgba(15,23,42,.8)';c.strokeText(pw.tag,0,1);c.fillStyle='#fff';c.fillText(pw.tag,0,1);c.restore()}
 function drawAstro(c,k,t){c.save();c.translate(k.x,k.y);c.rotate(Math.sin(t*1.5+k.ph)*.25);const wave=Math.sin(t*8)*6;
@@ -966,7 +973,7 @@ function draw(){const c=cx,t=G.t;c.setTransform(DPR(),0,0,DPR(),0,0);c.clearRect
   c.fillStyle='rgba(255,255,255,.22)';for(const d of G.dots)dot(c,d.x*W,d.y*H,d.s);
   for(const b of G.bullets){
     if(b.missile){c.save();c.translate(b.x,b.y);c.rotate(Math.atan2(b.vy,b.vx)+Math.PI/2);c.fillStyle='#fdba74';c.beginPath();c.roundRect(-3,-10,6,20,3);c.fill();c.fillStyle='#ef4444';c.beginPath();c.moveTo(-3,-10);c.lineTo(0,-16);c.lineTo(3,-10);c.closePath();c.fill();c.fillStyle='rgba(255,220,120,.9)';c.beginPath();c.moveTo(-3,10);c.lineTo(0,16+rand(0,4));c.lineTo(3,10);c.closePath();c.fill();c.restore()}
-    else if(b.plasma){c.save();c.shadowColor='#3b82f6';c.shadowBlur=12;c.fillStyle='#93c5fd';c.beginPath();c.roundRect(b.x-5,b.y-12,10,24,5);c.fill();c.fillStyle='#fff';c.beginPath();c.roundRect(b.x-2,b.y-9,4,12,2);c.fill();c.restore()}
+    else if(b.plasma){c.fillStyle='rgba(59,130,246,.35)';c.beginPath();c.roundRect(b.x-9,b.y-16,18,32,9);c.fill();c.fillStyle='#93c5fd';c.beginPath();c.roundRect(b.x-5,b.y-12,10,24,5);c.fill();c.fillStyle='#fff';c.beginPath();c.roundRect(b.x-2,b.y-9,4,12,2);c.fill()}
     else{const L=b.pierce?26:18;c.fillStyle=b.col;c.beginPath();c.roundRect(b.x-3,b.y-L/2,6,L,3);c.fill();if(b.pierce){c.fillStyle='#fff';c.beginPath();c.roundRect(b.x-2,b.y-L/2,4,8,2);c.fill()}}}
   for(const e of G.enemies)drawEnemy(c,e,t);
   for(const s of G.eshots){c.fillStyle='#f87171';dot(c,s.x,s.y,s.r);c.fillStyle='#fff';dot(c,s.x-2,s.y-2,2)}
@@ -985,6 +992,7 @@ function draw(){const c=cx,t=G.t;c.setTransform(DPR(),0,0,DPR(),0,0);c.clearRect
   c.globalAlpha=1;
   if(G.flash>0){c.fillStyle=`rgba(${G.flashCol},${G.flash*.45})`;c.fillRect(-20,-20,W+40,H+40)}
   if(G.pw.warp>0||G.pw.freeze>0){const col=G.pw.freeze>0?'125,211,252':'167,139,250',g=c.createRadialGradient(W/2,H/2,H*.3,W/2,H/2,H*.85);g.addColorStop(0,`rgba(${col},0)`);g.addColorStop(1,`rgba(${col},.3)`);c.fillStyle=g;c.fillRect(0,0,W,H)}
+  drawStick(c,t);
   for(const w of G.warns){const x=w.side?W-16:16,d=w.side?-1:1;c.globalAlpha=.5+.5*Math.sin(t*22);c.fillStyle='#f87171';c.beginPath();c.moveTo(x+d*10,w.y);c.lineTo(x-d*8,w.y-14);c.lineTo(x-d*8,w.y+14);c.closePath();c.fill();c.globalAlpha=1}
   c.restore()}
 
@@ -1030,13 +1038,13 @@ $('#mapBtn').onclick=()=>{Snd.click();openMap()};
 function setPause(on){if(!G)return;G.paused=on;$('#pauseMenu').hidden=!on;
   $('#pauseKeys').textContent=G.coop?'P1: W A S D to fly, F to shoot, left Shift laser, Q bomb · P2: arrow keys, . or right Ctrl to shoot, right Shift laser, / bomb':'Arrow keys or W A S D to fly · Space or left Ctrl to shoot (or let auto-fire do it) · left Shift for the laser · B for a bomb · on a touch screen drag to fly';
   $('#fsBtn').hidden=!canFull();$('#fsBtn').setAttribute('aria-pressed',String(!!document.fullscreenElement));$('#pAuto').setAttribute('aria-pressed',String(P().autoFire!==false));
-  try{if(Snd.ctx){on?Snd.ctx.suspend():Snd.ctx.resume()}}catch(e){}G.players.forEach(p=>{p.held={};p.target=null})}
+  try{if(Snd.ctx){on?Snd.ctx.suspend():Snd.ctx.resume()}}catch(e){}stick=null;G.players.forEach(p=>{p.held={};p.target=null;p.stick=null});applyTouchLayout()}
 $('#pauseBtn').onclick=()=>setPause(!(G&&G.paused));
 $('#fsBtn').onclick=()=>{Snd.click();if(document.fullscreenElement){try{document.exitFullscreen().catch(()=>{})}catch(e){}}else goFull()};
 $('#resumeBtn').onclick=()=>setPause(false);
 $('#quitBtn').onclick=()=>{setPause(false);if(G&&!G.finished){G.finished=true;finish()}};
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&G&&!G.paused&&screen==='game')setPause(true)});
-window.addEventListener('blur',()=>{if(G)G.players.forEach(p=>{p.held={}})});
+window.addEventListener('blur',()=>{stick=null;if(G)G.players.forEach(p=>{p.held={};p.stick=null})});
 
 /* ---------- input: keyboard maps, drag on the stage, the pad ---------- */
 function keyMap(pi){return G.coop?KEYS[pi+1]:KEYS[0]}
@@ -1050,24 +1058,33 @@ window.addEventListener('keydown',e=>{const k=e.key;if(screen!=='game'||!G)retur
   let used=false;G.players.forEach((p,i)=>{const a=keyAction(keyMap(i),k,e.code);if(!a)return;used=true;if(a==='bomb'||a==='special'){if(!e.repeat){Snd.init();a==='bomb'?useBomb(p):useSpecial(p)}}else{p.held[a]=true;p.target=null}});
   if(used)e.preventDefault()});
 window.addEventListener('keyup',e=>{if(!G)return;G.players.forEach((p,i)=>{const a=keyAction(keyMap(i),e.key,e.code);if(a&&a!=='bomb'&&a!=='special')p.held[a]=false})});
-let drag=null;
-cv.addEventListener('pointerdown',e=>{if(!G||G.paused)return;Snd.init();e.preventDefault();if(e.pointerType!=='mouse')document.body.classList.add('touch');
-  const p=G.players[0],r=cv.getBoundingClientRect();drag={id:e.pointerId,dx:p.x-(e.clientX-r.left),dy:p.y-(e.clientY-r.top)};try{cv.setPointerCapture(e.pointerId)}catch(err){}p.target={x:p.x,y:p.y}});
-cv.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId||!G)return;e.preventDefault();const r=cv.getBoundingClientRect();G.players[0].target={x:e.clientX-r.left+drag.dx,y:e.clientY-r.top+drag.dy}});
-const endDrag=e=>{if(!drag||(e&&e.pointerId!==undefined&&drag.id!==e.pointerId))return;drag=null;if(G)G.players[0].target=null};
-cv.addEventListener('pointerup',endDrag);cv.addEventListener('pointercancel',endDrag);
+/* the ghost thumbstick (Yan 11/3): it appears under the thumb on the stick side of the stage, pushes the ship in the
+   direction the thumb moves (full speed at STICK_R), and its base follows if the thumb goes past the rim */
+const STICK_R=56;let stick=null;
+function stickSide(x){const left=player&&P().stickLeft===true;return left?x<W/2:x>=W/2}
+cv.addEventListener('pointerdown',e=>{if(!G||G.paused)return;Snd.init();e.preventDefault();const touch=e.pointerType!=='mouse';if(touch)document.body.classList.add('touch');
+  const r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;if(stick||(touch&&!stickSide(x)))return;
+  stick={id:e.pointerId,ox:x,oy:y,x,y};try{cv.setPointerCapture(e.pointerId)}catch(err){}const p=G.players[0];p.stick={x:0,y:0};p.target=null});
+cv.addEventListener('pointermove',e=>{if(!stick||stick.id!==e.pointerId||!G)return;e.preventDefault();const r=cv.getBoundingClientRect(),R=STICK_R*G.bs,x=e.clientX-r.left,y=e.clientY-r.top;
+  let dx=x-stick.ox,dy=y-stick.oy;const d=Math.hypot(dx,dy);if(d>R){stick.ox+=dx*(1-R/d);stick.oy+=dy*(1-R/d);dx*=R/d;dy*=R/d}
+  stick.x=stick.ox+dx;stick.y=stick.oy+dy;const m=Math.hypot(dx,dy);G.players[0].stick=m<5?{x:0,y:0}:{x:dx/R,y:dy/R}});
+const endStick=e=>{if(!stick||(e&&e.pointerId!==undefined&&stick.id!==e.pointerId))return;stick=null;if(G)G.players[0].stick=null};
+cv.addEventListener('pointerup',endStick);cv.addEventListener('pointercancel',endStick);
+function drawStick(c,t){const p=G.players[0];if(!p||p.down||p.out)return;const R=STICK_R*G.bs;
+  if(stick){c.save();c.strokeStyle='rgba(255,255,255,.5)';c.lineWidth=3;c.beginPath();c.arc(stick.ox,stick.oy,R,0,TAU);c.stroke();c.fillStyle='rgba(255,255,255,.12)';dot(c,stick.ox,stick.oy,R);
+    c.fillStyle='rgba(255,255,255,.7)';dot(c,stick.x,stick.y,R*.42);c.restore()}
+  else if(document.body.classList.contains('touch')&&G.t<10&&active()){const x=stickSide(W*.75)?W*.75:W*.25,y=H-R-40;c.save();c.globalAlpha=.3+.12*Math.sin(t*3);c.setLineDash([6,6]);c.strokeStyle='#fff';c.lineWidth=2;c.beginPath();c.arc(x,y,R,0,TAU);c.stroke();c.setLineDash([]);
+    c.font=cfont(13);c.textAlign='center';c.textBaseline='middle';c.fillStyle='#fff';c.fillText('thumb here to fly',x,y+R+16);c.restore()}}
 function holdBtn(el,on,off){el.addEventListener('pointerdown',e=>{e.preventDefault();Snd.init();el.classList.add('held');try{el.setPointerCapture(e.pointerId)}catch(err){}on()});
   const up=()=>{el.classList.remove('held');off()};el.addEventListener('pointerup',up);el.addEventListener('pointercancel',up);el.addEventListener('lostpointercapture',up);el.addEventListener('contextmenu',e=>e.preventDefault())}
 const p1=()=>G&&G.players[0];
-holdBtn($('#padL'),()=>{const p=p1();if(p){p.held.left=true;p.target=null}},()=>{const p=p1();if(p)p.held.left=false});
-holdBtn($('#padR'),()=>{const p=p1();if(p){p.held.right=true;p.target=null}},()=>{const p=p1();if(p)p.held.right=false});
-holdBtn($('#padF'),()=>{const p=p1();if(p)p.held.fire=true},()=>{const p=p1();if(p)p.held.fire=false});
-$('#padB').addEventListener('pointerdown',e=>{e.preventDefault();Snd.init();const p=p1();if(p)useBomb(p)});
-$('#padB').addEventListener('contextmenu',e=>e.preventDefault());
+holdBtn($('#tbFire'),()=>{const p=p1();if(p)p.held.fire=true},()=>{const p=p1();if(p)p.held.fire=false});
+$('#tbBomb').addEventListener('pointerdown',e=>{e.preventDefault();Snd.init();const p=p1();if(p)useBomb(p)});
+$('#tbBomb').addEventListener('contextmenu',e=>e.preventDefault());
 $('#bombs').onclick=()=>{const p=p1();if(p)useBomb(p)};
 $('#special').onclick=()=>{const p=p1();if(p)useSpecial(p)};
-$('#padS').addEventListener('pointerdown',e=>{e.preventDefault();Snd.init();const p=p1();if(p)useSpecial(p)});
-$('#padS').addEventListener('contextmenu',e=>e.preventDefault());
+$('#tbLaser').addEventListener('pointerdown',e=>{e.preventDefault();Snd.init();const p=p1();if(p)useSpecial(p)});
+$('#tbLaser').addEventListener('contextmenu',e=>e.preventDefault());
 window.addEventListener('touchstart',()=>document.body.classList.add('touch'),{passive:true,once:true});
 window.addEventListener('resize',()=>{if(screen==='game'&&G)sizeStage()});
 
@@ -1102,7 +1119,7 @@ renderMenu();renderSaveNote();requestAnimationFrame(frame);
 })();
 window.__ms={get G(){return G},normalize,get saves(){return saves},net:Net,cloud:CLOUD,MSMath,BUILD,SECTORS,WORLD_RAMP,UPGRADES,PERKS,POWERS,MEDALS,EVOS:EVO_IDS,
   input(i,h){if(G&&G.players[i]){Object.assign(G.players[i].held,h);G.players[i].target=null}},pickUp,useBomb,useSpecial,spawnHydra,hydraHit,startWorld,setCoop(ids){coopIds=ids},player:()=>player,P:()=>P(),buyPerk:id=>buyPerk(PERKS[id]),worldOpen:(si,wi)=>worldOpen(P(),si,wi),
-  spawnRock,spawnSnatcher,spawnSwarm,spawnBoss,spawnAstro,bossHit,startBlitz,openUpgrade,scoreMul,chainMul,setAuto,bossWave,MISSIONS,missions:()=>missionsOf(P()),nextWave,
+  spawnRock,spawnSnatcher,spawnSwarm,spawnBoss,spawnAstro,bossHit,startBlitz,openUpgrade,scoreMul,chainMul,setAuto,setStick,bossWave,MISSIONS,missions:()=>missionsOf(P()),nextWave,
   givePower:(i,id)=>givePower(G.players[i],id),damage:(e,n)=>{e.hp-=n;if(e.hp<=0)killEnemy(e)},applyUp:(i,id)=>applyUp(G.players[i],id,true),drones:i=>drones(G.players[i]),hitPlayer:i=>hitPlayer(G.players[i])};
 if(CLOUD&&location.protocol.startsWith('http'))setTimeout(()=>{fetch(location.pathname,{cache:'no-store'}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD='([^']+)'/);if(m&&m[1]!==BUILD&&!location.search.includes('v='+m[1]))location.replace(location.pathname+'?v='+m[1])}).catch(()=>{})},1500);
 })();
