@@ -31,7 +31,10 @@ const assert = require('assert');
   const med = mergeState({ medals: { 'add-1/p': 1 } }, { medals: { 'add-1/u': 1 } }, {});
   assert.deepStrictEqual(med.medals, { 'add-1/u': 1, 'add-1/p': 1 });
   assert.strictEqual(lowersProgress({ stars: {}, medals: {} }, { stars: {}, medals: { 'add-1/p': 1 } }), true);
-  const mis = mergeState({ missions: { active: [{ id: 'catch25', n: 7 }], done: 1, next: 4 } }, { missions: { active: [], done: 0, next: 3 } }, {});
-  assert.deepStrictEqual(mis.missions, { active: [{ id: 'catch25', n: 7 }], done: 1, next: 4 }, 'missions follow this page');
-  console.log('logic: 20 checks ok');
+  /* missions: the copy further along wins the list, counters take the max, done/next never drop */
+  const mis = mergeState({ missions: { active: [{ id: 'catch25', n: 7 }, { id: 'rescue5', n: 1 }], done: 1, next: 4 } }, { missions: { active: [{ id: 'catch25', n: 12 }], done: 0, next: 3 } }, {});
+  assert.deepStrictEqual(mis.missions, { active: [{ id: 'catch25', n: 12 }, { id: 'rescue5', n: 1 }], done: 1, next: 4 }, 'this page is ahead: its list, max counters');
+  const stale = mergeState({ missions: { active: [{ id: 'catch25', n: 3 }], done: 0, next: 3 } }, { missions: { active: [{ id: 'kills60', n: 9 }], done: 2, next: 5 } }, {});
+  assert.deepStrictEqual(stale.missions, { active: [{ id: 'kills60', n: 9 }], done: 2, next: 5 }, 'a stale page cannot resurrect finished missions');
+  console.log('logic: 21 checks ok');
 })().catch(e => { console.error(e); process.exit(1); });

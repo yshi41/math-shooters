@@ -20,7 +20,7 @@ const snap = p => p.evaluate(() => { const G = window.__ms.G; if (!G) return nul
     bubbles: G.bubbles.filter(b => b.state === 'live').map(b => ({ x: b.x, y: b.y, ok: b.ok })),
     enemies: G.enemies.filter(e => !e.flee).map(e => ({ x: e.x, y: e.y })), eshots: G.eshots.map(s => ({ x: s.x, y: s.y })), bullets: G.bullets.length }; });
 /* steer player pi toward (tx,ty): avoid wrong bubbles on the way and enemies nearby; the bot holds fire the whole time (there is no auto-fire) */
-async function steer(p, pi, s, tx, ty, raw) {
+async function steer(p, pi, s, tx, ty, raw, wantOk = true) {
   const me = s.players[pi], H = s.H; let dx = tx - me.x, dy = ty - me.y;
   const threat = raw ? null : s.enemies.concat(s.eshots).find(e => Math.abs(e.x - me.x) < 70 && e.y > H * .4 && e.y < me.y + 40);
   if (threat) { dx = threat.x > me.x ? -200 : 200; dy = 0; }
@@ -30,7 +30,11 @@ async function steer(p, pi, s, tx, ty, raw) {
     const blockers = s.bubbles.filter(b => !b.ok && b.x > lo && b.x < hi && Math.abs(b.y - me.y) < 90);
     if (blockers.length) { const b = blockers[0]; dy = b.y > me.y ? -200 : 200; dx = 0; }
   }
-  await p.evaluate((i, h) => window.__ms.input(i, h), pi, { left: dx < -6, right: dx > 6, up: dy < -6, down: dy > 6, fire: true });
+  /* CAPTURE pulses (a press every other tick) only when the nearest bubble in reach is the one we want */
+  const rr = Math.max(24, Math.min(44, s.W * .06)), reach = s.bubbles.filter(b => b.y >= 0 && Math.abs(b.x - me.x) < rr * 1.6 && Math.abs(b.y - me.y) < H * .5)
+    .sort((a, b) => (Math.abs(a.x - me.x) + Math.abs(a.y - me.y)) - (Math.abs(b.x - me.x) + Math.abs(b.y - me.y)))[0];
+  const cap = !!reach && reach.ok === wantOk && (steer.n = (steer.n || 0) + 1) % 2 === 0;
+  await p.evaluate((i, h) => window.__ms.input(i, h), pi, { left: dx < -6, right: dx > 6, up: dy < -6, down: dy > 6, fire: true, capture: cap });
 }
 const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, right: false, up: false, down: false, fire: true }), pi);
 
@@ -97,13 +101,15 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
     if (s.phase === 'upgrade') { if (picked < s.wave) { picked = s.wave;
         /* take a real upgrade (not a filler) so the saved levels can be checked */
         const idx = await p.evaluate(() => [...document.querySelectorAll('#upCards .up-card')].findIndex(b => !['heal', 'treats'].includes(b.dataset.up)));
-        await p.keyboard.press(String((idx < 0 ? 0 : idx) + 1)); await wait(150); } continue; }
+        await p.keyboard.press(String((idx < 0 ? 0 : idx) + 1)); await wait(150);
+        /* the Extra Heart card caps hearts at 7; keep the bot unkillable for the rest of the checks */
+        await p.evaluate(() => { const G = window.__ms.G; if (G) for (const q of G.players) { q.maxHearts = q.hearts = 20; } }); } continue; }
     if (s.phase !== 'run') { await stop(p, 0); await wait(80); continue; }
     const me = s.players[0], ok = s.bubbles.find(b => b.ok), wrong = s.bubbles.find(b => !b.ok);
     if (ok) { if (lastBubbleY != null && ok.y < lastBubbleY - s.H * .5) wrapSeen = true; lastBubbleY = ok.y; }
     const zoneY = y => Math.max(s.H * .56, Math.min(y, s.H - 40));
     if (prev && !wrongDone && s.wrongs > prev.wrongs) { wrongDone = true; wrongCheck = { hearts: me.hearts < prev.hearts, kept: me.lv === prev.lv, lv: me.lv, wave: s.wave }; }
-    if (s.wave >= 2 && !wrongDone && wrong) await steer(p, 0, s, wrong.x, zoneY(wrong.y), true);
+    if (s.wave >= 2 && !wrongDone && wrong) await steer(p, 0, s, wrong.x, zoneY(wrong.y), true, false);
     else if (ok) await steer(p, 0, s, ok.x, zoneY(ok.y));
     else await stop(p, 0);
     prev = { hearts: me.hearts, lv: me.lv, wrongs: s.wrongs };
@@ -154,10 +160,10 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
     const shot = (x, y) => ms.hydraHit(e, { x, y, dmg: 1 });
     const out = { arms: e.arms.length, oneRight: e.arms.filter(m => m.ok).length === 1 && e.arms.some(m => m.ok && m.v === e.q.ans), chip: document.querySelector('#eq2').textContent.includes(e.q.text) };
     const hp0 = e.hp; shot(e.x, e.y); out.armored = e.hp === hp0 && !(e.open > 0);
-    const wrong = e.arms.find(m => !m.ok), wv = wrong.v; shot(wrong.x, wrong.y); out.wrongGone = wrong.state === 'grow' && !(e.open > 0) && e.hp === hp0;
-    await sl(1300); out.wrongBack = wrong.state === 'on' && wrong.v === wv;
+    const wrong = e.arms.find(m => !m.ok); shot(wrong.x, wrong.y); out.wrongGone = wrong.state === 'grow' && !(e.open > 0) && e.hp === hp0 + 2;
+    await sl(1300); out.wrongBack = wrong.state === 'on' && e.arms.filter(m => m.ok).length === 1;
     const right = e.arms.find(m => m.ok), q0 = e.q; shot(right.x, right.y); out.open = e.open > 0 && right.state === 'gone';
-    shot(e.x, e.y); out.bodyHit = e.hp === hp0 - 1;
+    shot(e.x, e.y); out.bodyHit = e.hp === hp0 + 1;
     await sl(6000); out.regrown = !(e.open > 0) && e.arms.every(m => m.state === 'on') && e.arms.filter(m => m.ok).length === 1 && e.q !== q0 && e.arms.some(m => m.ok && m.v === e.q.ans);
     for (let k = 0; k < 60 && !e.dead; k++) { const r = e.arms.find(m => m.ok); if (r.state === 'on') shot(r.x, r.y); shot(e.x, e.y); await sl(30); }
     await sl(150); out.killed = e.dead === true && !G.enemies.includes(e);
@@ -205,7 +211,7 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
     const sc0 = G.score, c0 = G.pickups.filter(k => k.kind === 'cap').length; G.chain = 0; G.lastCm = 1; G.streak = 0;
     for (const b of bees) ms.damage(b, 1); await sl(60);
     out.chain = G.chain === 5 && ms.chainMul() === 2; out.swarmBonus = G.score - sc0 >= 520 && G.pickups.filter(k => k.kind === 'cap').length >= c0 + 1; out.gain = G.score - sc0;
-    const a = ms.spawnAstro(); a.x = me.x; a.y = me.y; await sl(120); out.rescued = G.stats.rescues === 1 && !G.pickups.includes(a);
+    const a = ms.spawnAstro(); a.x = me.x; a.y = me.y - 6; await sl(60); ms.input(0, { capture: true }); await sl(80); ms.input(0, { capture: false }); await sl(60); out.rescued = G.stats.rescues === 1 && !G.pickups.includes(a);
     const b = ms.spawnBoss(); b.y = b.home; await sl(120); const hp0 = b.hp, hit = (x, y, d) => ms.bossHit(b, { x, y, dmg: d });
     hit(b.x, b.y, 2); out.armored = b.hp === hp0 && !b.open;
     for (const t of b.turrets) hit(t.x, t.y, 20); await sl(120); out.open = b.open === true && b.turrets.every(t => t.hp <= 0);
@@ -271,7 +277,7 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
     s = await snap(p); if (!s) break;
     if (s.phase !== 'run') { await wait(80); continue; }
     const wrong = s.bubbles.find(b => !b.ok);
-    if (wrong) await steer(p, 0, s, wrong.x, Math.max(s.H * .56, Math.min(wrong.y, s.H - 40)), true); else await stop(p, 0);
+    if (wrong) await steer(p, 0, s, wrong.x, Math.max(s.H * .56, Math.min(wrong.y, s.H - 40)), true, false); else await stop(p, 0);
     await p.evaluate(() => window.__ms.input(1, { left: false, right: false, up: false, down: true, fire: true }));
     if (s.players[0].down) downSeen = true;
     await wait(50);
@@ -289,7 +295,8 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
   }
   await stop(p, 1);
   check(revived, 'player 2 flew into the rescue bubble and revived player 1 with 2 hearts');
-  /* player 2 catches the right answers to the end of the wave; both pick a card */
+  /* player 2 catches the right answers to the end of the wave; both pick a card (enemy fire must not end the world meanwhile) */
+  await p.evaluate(() => { for (const q of window.__ms.G.players) { q.maxHearts = q.hearts = 20; } });
   let cards = 0, picks = 0;
   for (let i = 0; i < 2500; i++) {
     s = await snap(p); if (!s) break;

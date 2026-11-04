@@ -78,7 +78,9 @@ Progress saves online only, through the Worker in `worker/`; nothing is ever kep
 - `test/`: `node math.test.js` (the generators, lifted out of `src/game.js`), `node logic.test.js` (merge
   rules), and the headless Chrome suite `node test.js ../index.html` (after `npm install` in `test/`), which
   plays a solo world and a two-player world against an in-memory stand-in for the save service and never
-  touches the real saves.
+  touches the real saves. `node fuzz.js ../index.html [seconds]` is the crash fuzz: it plays every sector, both
+  bosses, Endless and co-op with random power-ups, spawns, bombs, lasers, picks and keys, and fails on any page
+  error or stalled frame.
 
 ## Tuning knobs (`src/game.js`)
 

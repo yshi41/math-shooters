@@ -33,7 +33,15 @@ export function mergeState(mine, theirs, base) {
   out.perks = [...new Set([...(Array.isArray(theirs.perks) ? theirs.perks : []), ...(Array.isArray(mine.perks) ? mine.perks : [])].filter(x => typeof x === 'string'))];
   if ('autoFire' in mine) out.autoFire = mine.autoFire;
   if ('stickLeft' in mine) out.stickLeft = mine.stickLeft;
-  if (isObj(mine.missions)) out.missions = clone(mine.missions);
+  /* missions: the copy that is further along (higher next) sets the active list; counters take the max of both;
+     done and next never go backwards, so a stale page can neither resurrect a finished mission nor pay it twice */
+  const mm = isObj(mine.missions) ? mine.missions : null, tm = isObj(theirs.missions) ? theirs.missions : null;
+  if (mm || tm) {
+    const ahead = (!tm || (mm && num(mm.next) >= num(tm.next))) ? mm : tm, other = ahead === mm ? tm : mm;
+    const act = Array.isArray(ahead.active) ? ahead.active : [], oact = other && Array.isArray(other.active) ? other.active : [];
+    out.missions = { active: [], done: Math.max(num(mm && mm.done), num(tm && tm.done)), next: Math.max(num(mm && mm.next), num(tm && tm.next)) };
+    for (const a of act) { if (!isObj(a) || typeof a.id !== 'string') continue; const o = oact.find(x => isObj(x) && x.id === a.id); out.missions.active.push({ id: a.id, n: Math.max(num(a.n), o ? num(o.n) : 0) }); }
+  }
   out.updated = Date.now();
   return out;
 }

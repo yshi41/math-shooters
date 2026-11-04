@@ -120,7 +120,7 @@ kbd{font:inherit;font-weight:800;background:var(--surface-2);border:1px solid va
 .icon-btn{pointer-events:auto;width:40px;height:40px;border-radius:50%;border:2px solid rgba(255,255,255,.4);background:rgba(255,255,255,.15);color:#fff;cursor:pointer;display:grid;place-items:center;touch-action:manipulation;flex:0 0 auto}
 .icon-btn svg{width:20px;height:20px;stroke:#fff;stroke-width:3;fill:none;stroke-linecap:round}
 @media (max-width:620px){.hud{grid-template-columns:1fr 1fr;grid-template-areas:"eq eq" "l r";gap:4px 8px;padding:8px}.eq{font-size:clamp(1.5rem,7vw,2.2rem)}.heart{width:18px;height:17px}.score-box .combo{display:none}}
-.banner{position:absolute;left:50%;top:44%;z-index:5;transform:translate(-50%,-50%) scale(0);text-align:center;pointer-events:none;font-size:clamp(2rem,8vw,4.2rem);font-weight:900;color:#fff;text-shadow:0 4px 0 var(--accent-deep),0 10px 24px rgba(0,0,0,.35);white-space:nowrap;opacity:0;max-width:96%}
+.banner{position:absolute;left:50%;top:44%;z-index:5;transform:translate(-50%,-50%) scale(0);text-align:center;pointer-events:none;font-size:clamp(2rem,8vw,4.2rem);font-weight:900;line-height:1.05;color:#fff;text-shadow:0 4px 0 var(--accent-deep),0 10px 24px rgba(0,0,0,.35);white-space:normal;opacity:0;width:max-content;max-width:94%}
 .banner small{font-size:.36em;color:var(--ink);text-shadow:none;background:#fff;border-radius:99px;padding:.15em .8em;margin-top:.25em;display:inline-block;white-space:normal}
 .banner.show{animation:bannerIn 1.35s ease-out forwards}
 .overlay{position:absolute;inset:0;z-index:6;display:grid;place-content:center;justify-items:center;gap:12px;background:rgba(15,27,45,.84);text-align:center;padding:16px;color:#fff;overflow:auto}
@@ -150,11 +150,12 @@ kbd{font:inherit;font-weight:800;background:var(--surface-2);border:1px solid va
 .t-btn.held,.t-btn:active{background:rgba(255,255,255,.42)}
 .t-btn.fire{border-color:rgba(74,222,128,.85)}
 .t-btn.bomb{border-color:rgba(248,113,113,.85)}
+.t-btn.cap{width:78px;height:78px;border-color:rgba(253,224,71,.9);font-size:.8rem}
 .t-btn.laser{border-color:rgba(125,211,252,.85)}
 .t-btn.laser.ready{background:rgba(125,211,252,.45);box-shadow:0 0 14px rgba(125,211,252,.8)}
 .hint{color:var(--ink-soft);font-size:.9rem;font-weight:600;text-align:center;margin:10px 0 0}
 @media (max-width:620px){.wrap{padding:8px 8px 20px}.stage{height:clamp(380px,calc(100dvh - 60px),800px)}.hint{display:none}}
-@media (max-height:500px){.stage{height:calc(100dvh - 30px);min-height:260px}.hint{display:none}}
+@media (max-height:500px){.stage{height:calc(100dvh - 30px);min-height:260px}.hint{display:none}.t-btns{flex-direction:row-reverse}.t-btn{width:58px;height:58px}}
 /* full screen on the computer: the play area fills the screen top to bottom; it stays a playable width and the sides match it */
 body.fs[data-screen=game]{background:linear-gradient(180deg,var(--bg),var(--bg2)) fixed}
 body.fs[data-screen=game] .wrap{max-width:none;padding:0}
@@ -183,6 +184,20 @@ body.fs[data-screen=game] .hint{display:none}
 @keyframes ansPop{0%{transform:scale(.4)}60%{transform:scale(1.35)}100%{transform:scale(1)}}
 @keyframes qBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
 @keyframes wig{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+/* the map (11/4): smaller chrome so the worlds get the room */
+body[data-screen=map] .wrap{max-width:1200px}
+#map .card{padding:10px 12px;margin-bottom:8px}
+#map .sector{margin-bottom:8px}
+#map .sec-head{margin-bottom:6px}
+#map .sec-head h3{font-size:1rem}
+#map .sec-head small{font-size:.8rem}
+#map .worlds{gap:6px}
+#map .wbtn{min-height:46px;padding:4px 2px;border-radius:14px;gap:0}
+#map .wbtn .wn{font-size:1rem}
+#map .wbtn .ws .st{width:.75em;height:.75em}
+#map .wbtn small{font-size:.6rem}
+#map .md i{font-size:.5rem}
+#map .topbar2{margin-bottom:8px;padding:6px 8px}
 </style>
 
 <canvas id="fx" aria-hidden="true"></canvas>
@@ -218,15 +233,15 @@ body.fs[data-screen=game] .hint{display:none}
         <div class="card how">
           <h3>How to play</h3>
           <ul>
-            <li><b>Catch the answer:</b> the problem is at the top. Fly your ship anywhere on the screen into the bubble with the right answer. A missed bubble floats back up and comes around again.</li>
-            <li><b>Shoot the enemies:</b> your ship fires on its own (turn Auto-fire off in Settings to shoot with <kbd>Space</kbd> or FIRE). Enemies glimmer just before they shoot, and a red arrow at the edge warns when something is flying in. Crashers fire and dive, saucers circle, bees come in swarms (down all five for a bonus), asteroids drift and split, and the <b>Bubble Snatcher</b> steals an answer bubble: shoot it to get the bubble back. Bullets never pop answer bubbles.</li>
+            <li><b>Catch the answer:</b> the problem is at the top. Fly under the bubble with the right answer and press <kbd>Space</kbd> (CAPTURE on a touch screen) to catch it. Bubbles you fly past are harmless, and astronauts are caught the same way.</li>
+            <li><b>Shoot the enemies:</b> your ship fires on its own (turn Auto-fire off in Settings to shoot with left <kbd>Ctrl</kbd> or FIRE). Enemies glimmer just before they shoot, and a red arrow at the edge warns when something is flying in. Crashers fire and dive, saucers circle, bees come in swarms (down all five for a bonus), asteroids drift and split, and the <b>Bubble Snatcher</b> steals an answer bubble: shoot it to get the bubble back. Bullets never pop answer bubbles.</li>
             <li><b>Power-ups:</b> enemies drop capsules. Freeze stops everything, Time Warp slows it, Double Points doubles the score, Overdrive doubles your fire, Wingman adds a drone, and Shield, Laser Cell and Bomb help right away. They last a few seconds; the timers sit under your hearts.</li>
-            <li><b>Upgrades:</b> after each wave pick one of three. <b>They are yours to keep</b>: they come with you to every world, and getting hit only costs a heart. Your ship shows them off: nose guns, wing pods, a glowing core, drones, missile rails. Max out two matching upgrades and a gold <b>Evolution</b> card appears.</li>
+            <li><b>Upgrades:</b> after each wave pick one of three. <b>They are yours to keep</b>: they come with you to every world, and getting hit only costs a heart. Your ship shows them off: nose guns, wing guns, a glowing core, drones, missile rails. Max out two matching upgrades and a gold <b>Evolution</b> card appears.</li>
             <li><b>Bonus Blitz:</b> after wave 2, fifteen seconds where nothing can hurt you. Shoot all sixteen for a perfect, a power-up and a medal.</li>
             <li><b>Astronauts and medals:</b> three lost astronauts drift through every world; fly over them to rescue them. Each world has four medals: Perfect, Untouched, Rescuer and Blitz. Every new medal is 10 treats.</li>
             <li><b>Laser:</b> it charges over time and faster with right answers. When your ship glows, press left <kbd>Shift</kbd> to burn a beam straight up for two seconds.</li>
-            <li><b>Bosses:</b> the tank guards world 6 of the Addition, Times Tables and Division sectors and gets angry at half health. The <b>Mothership</b> guards the other sectors: shoot its two turrets, then the core. The <b>Math Hydra</b> keeps its armor until you shoot off the arm with the right answer to the problem on its belly; then blast the body before the arm grows back.</li>
-            <li><b>Controls:</b> arrow keys or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> to fly, <kbd>Space</kbd> or left <kbd>Ctrl</kbd> to shoot, left <kbd>Shift</kbd> for the laser, <kbd>B</kbd> for a bomb, <kbd>P</kbd> to pause. On a computer the game goes full screen; <kbd>Esc</kbd> leaves it. On a touch screen put your right thumb anywhere on the right half: a ghost stick appears under it and the ship follows. LASER and BOMB sit bottom-left (FIRE too while Auto-fire is off). Swap the sides in Settings.</li>
+            <li><b>Bosses:</b> the tank guards world 6 of the Addition, Times Tables and Division sectors and gets angry at half health. The <b>Mothership</b> guards the other sectors: shoot its two turrets, then the core. The <b>Math Hydra</b> is a solo boss with its arms far apart. Its armor holds until you shoot off the arm with the right answer to the problem on its belly; then blast the body while it is open. Shoot a wrong arm and the numbers scramble and it grows stronger.</li>
+            <li><b>Controls:</b> arrow keys or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> to fly, <kbd>Space</kbd> to capture, left <kbd>Ctrl</kbd> to shoot, left <kbd>Shift</kbd> for the laser, <kbd>B</kbd> for a bomb, <kbd>P</kbd> to pause. On a computer the game goes full screen; <kbd>Esc</kbd> leaves it. On a touch screen put your right thumb anywhere on the right half: a ghost stick appears under it and the ship follows. LASER and BOMB sit bottom-left (FIRE too while Auto-fire is off). Swap the sides in Settings.</li>
             <li><b>Two players:</b> player 1 flies with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>, shoots with <kbd>F</kbd>, lasers with left <kbd>Shift</kbd> and bombs with <kbd>Q</kbd>; player 2 flies with the arrows, shoots with <kbd>.</kbd> or right <kbd>Ctrl</kbd>, lasers with right <kbd>Shift</kbd> and bombs with <kbd>/</kbd>. Rescue a downed partner by flying into their bubble, take turns catching for Teamwork bonuses, and stay close so your beam pops enemy shots.</li>
             <li><b>The map:</b> each sector is one kind of math and gets harder world by world. Clearing world 3 of a sector opens the next sector. Mixed opens last.</li>
             <li><b>Missions and Endless:</b> three missions wait on this page; each pays treats and the next slides in when one is done. Clear any world 3 to open <b>Endless</b>: mixed problems, waves that never stop, a boss every fourth wave and a Blitz every fifth. How far can you get?</li>
@@ -268,7 +283,7 @@ body.fs[data-screen=game] .hint{display:none}
         <div class="toggles" style="justify-content:center"><button id="pAuto" class="tog" type="button" aria-pressed="true">Auto-fire</button><button id="pStick" class="tog" type="button" aria-pressed="false">Stick on the left</button><button id="fsBtn" class="tog" type="button" aria-pressed="false" hidden>Full screen</button></div>
         <button id="quitBtn" class="btn btn-ghost" type="button">End world and save</button>
       </div>
-      <div id="touchUI" class="touch-ui"><div class="t-btns"><button id="tbFire" class="t-btn fire" type="button" aria-label="Fire">FIRE</button><button id="tbLaser" class="t-btn laser" type="button" aria-label="Laser">LASER</button><button id="tbBomb" class="t-btn bomb" type="button" aria-label="Bomb">BOMB</button></div></div>
+      <div id="touchUI" class="touch-ui"><div class="t-btns"><button id="tbCap" class="t-btn cap" type="button" aria-label="Capture">CAPTURE</button><button id="tbFire" class="t-btn fire" type="button" aria-label="Fire">FIRE</button><button id="tbLaser" class="t-btn laser" type="button" aria-label="Laser">LASER</button><button id="tbBomb" class="t-btn bomb" type="button" aria-label="Bomb">BOMB</button></div></div>
     </div>
     <p class="hint" id="gameHint"></p>
   </section>
