@@ -3,13 +3,13 @@
 A vertical shooter for the kids where the math is caught, not typed. Live at https://yshi41.github.io/math-shooters/
 
 The problem sits at the top and answer bubbles fall down the screen. **Bubbles cannot be shot**: fly the ship
-into the right one. A missed bubble floats back up and comes around again. The ship **fires on its own** (Auto-fire,
-a per-player setting in the hub and the pause menu, on by default; Space or left Ctrl always work too). Every enemy
+until it touches the right one and press Space (CAPTURE on touch); there is no catching from a distance. A missed bubble floats back up and comes around again. The ship **fires on its own** (Auto-fire,
+a per-player setting in the hub and the pause menu, on by default; left Ctrl always works too). Every enemy
 glimmers just before it shoots and a red chevron at the screen edge warns before something flies in. Crashers fire and
 dive, saucers circle and shoot, **bees** come in swarms of five on a sine path (only the leader shoots; all five down is
 +200 and a capsule), **asteroids** drift down and split in two, and the **Bubble Snatcher** grabs an answer bubble and
 flies off with it: shoot it and the bubble drops back, let it escape and the bubble returns at the top. Three **lost
-astronauts** drift through every world (one per wave); fly over them to rescue them.
+astronauts** drift through every world (one per wave); touch one and press Space to rescue it.
 
 **Capsule power-ups** drop from enemies (about one in ten, more with Lucky Drops, always from bosses, and a supply drop
 if none has shown for 22 s): Freeze (4 s, everything stops), Double Points (10 s, stacks with Glow Mode), Time Warp
@@ -29,8 +29,9 @@ comes the **Bonus Blitz**: 15 seconds where nothing can hurt you and two formati
 down is a perfect (+300, a capsule, a medal). Each world has four **medals** shown on the map: Perfect (no wrong
 answers), Untouched (never hit), Rescuer (all three astronauts), Blitz (a perfect bonus round); each pays 10 treats the
 first time. Bosses: the **tank** guards world 6 of the even sectors and gets angry at half health (faster, a five-way
-fan); the **Mothership** guards the odd ones (two turrets to shoot first, then the core opens, fires a spread and sends
-crashers down). The **Math Hydra** (from wave 2, or wave 1 from world 3; never on the boss wave) carries its own problem
+fan); the **Mothership** guards the odd ones (two turrets to shoot first, then the core opens, fires a spread). Every boss
+fights alone: other enemies flee when it arrives and none spawn while it lives (astronauts and supply drops still
+come). The **Math Hydra** (from wave 2 of world 2, or wave 1 from world 3; never on the boss wave) carries its own problem
 on its belly and one answer on each arm (3 arms, 4 from world 4). Its armor holds until the arm with the right answer
 is shot off; the body then takes hits for 4.5 seconds, until that arm grows back with a new problem. Progress runs
 through a **world map**: six sectors (Addition, Subtraction, Times Tables, Multiplication, Division, Mixed), six worlds
@@ -84,7 +85,8 @@ Progress saves online only, through the Worker in `worker/`; nothing is ever kep
 
 ## Tuning knobs (`src/game.js`)
 
-`WORLD_RAMP` (per-world tier, bubble speed, enemy cap and timing), `MIX_TIERS`, `WAVE_N` (correct answers per
+`WORLD_RAMP` (per-world tier, bubble speed, enemy cap and timing, and `foe`, the enemy pace that keeps worlds 1 and 2
+slow), `SIZE` (the scale of everything on the field), `MIX_TIERS`, `WAVE_N` (correct answers per
 wave), `LASER_T` and `CHARGE_T` (laser length and recharge), `HYDRA_OPEN` and `spawnHydra` (the hydra's open window, arms and
 health), `POWERS` (capsule durations and colours), `SUPPLY_T` (seconds without a capsule before one drifts in), `BLITZ_T`,
 `CHAIN_T`, the drop odds in `rollDrop`, the gates `rockOK`/`snatchOK`/`swarmOK` and the spawn timers set in `nextWave`

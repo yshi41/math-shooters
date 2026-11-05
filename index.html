@@ -10,6 +10,7 @@
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#c9dbf0;color:#17283a}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
+<title>Math Shooters</title>
 <style>
 /* Math Shooters, mechanics pass: one neutral palette and simple shapes. The Spelling Worlds palettes,
    scenes and characters arrive with the theme pass (see build.js). */
@@ -217,7 +218,7 @@ body[data-screen=map] .wrap{max-width:1200px}
   <section id="menu" class="screen">
     <div class="card">
       <h1 class="brand-big">Math Shooters</h1>
-      <p class="lede">Fly into the right answer, shoot the enemies and dodge everything else. Clear the worlds of each sector, grab upgrades between waves and keep them for good.</p>
+      <p class="lede">Touch the right answer and capture it, shoot the enemies and dodge everything else. Clear the worlds of each sector, grab upgrades between waves and keep them for good.</p>
     </div>
     <h2 class="who">Who's playing?</h2>
     <div id="kids" class="profile-grid"></div>
@@ -244,14 +245,14 @@ body[data-screen=map] .wrap{max-width:1200px}
         <div class="card how">
           <h3>How to play</h3>
           <ul>
-            <li><b>Catch the answer:</b> the problem is at the top. Fly under the bubble with the right answer and press <kbd>Space</kbd> (CAPTURE on a touch screen) to catch it. Bubbles you fly past are harmless, and astronauts are caught the same way.</li>
+            <li><b>Catch the answer:</b> the problem is at the top. Fly right up to the bubble with the right answer so your ship touches it, then press <kbd>Space</kbd> (CAPTURE on a touch screen) to catch it. You cannot catch from far away or by shooting. Bubbles you fly past are harmless, and astronauts are caught the same way.</li>
             <li><b>Shoot the enemies:</b> your ship fires on its own (turn Auto-fire off in Settings to shoot with left <kbd>Ctrl</kbd> or FIRE). Enemies glimmer just before they shoot, and a red arrow at the edge warns when something is flying in. Crashers fire and dive, saucers circle, bees come in swarms (down all five for a bonus), asteroids drift and split, and the <b>Bubble Snatcher</b> steals an answer bubble: shoot it to get the bubble back. Bullets never pop answer bubbles.</li>
             <li><b>Power-ups:</b> enemies drop capsules. Freeze stops everything, Time Warp slows it, Double Points doubles the score, Overdrive doubles your fire, Wingman adds a drone, and Shield, Laser Cell and Bomb help right away. They last a few seconds; the timers sit under your hearts.</li>
             <li><b>Upgrades:</b> after each wave pick one of three. <b>They are yours to keep</b>: they come with you to every world, and getting hit only costs a heart. Your ship shows them off: nose guns, wing guns, a glowing core, drones, missile rails. Max out two matching upgrades and a gold <b>Evolution</b> card appears.</li>
             <li><b>Bonus Blitz:</b> after wave 2, fifteen seconds where nothing can hurt you. Shoot all sixteen for a perfect, a power-up and a medal.</li>
-            <li><b>Astronauts and medals:</b> three lost astronauts drift through every world; fly over them to rescue them. Each world has four medals: Perfect, Untouched, Rescuer and Blitz. Every new medal is 10 treats.</li>
+            <li><b>Astronauts and medals:</b> three lost astronauts drift through every world; touch one and press <kbd>Space</kbd> to rescue it. Each world has four medals: Perfect, Untouched, Rescuer and Blitz. Every new medal is 10 treats.</li>
             <li><b>Laser:</b> it charges over time and faster with right answers. When your ship glows, press left <kbd>Shift</kbd> to burn a beam straight up for two seconds.</li>
-            <li><b>Bosses:</b> the tank guards world 6 of the Addition, Times Tables and Division sectors and gets angry at half health. The <b>Mothership</b> guards the other sectors: shoot its two turrets, then the core. The <b>Math Hydra</b> is a solo boss with its arms far apart. Its armor holds until you shoot off the arm with the right answer to the problem on its belly; then blast the body while it is open. Shoot a wrong arm and the numbers scramble and it grows stronger.</li>
+            <li><b>Bosses:</b> the tank guards world 6 of the Addition, Times Tables and Division sectors and gets angry at half health. The <b>Mothership</b> guards the other sectors: shoot its two turrets, then the core. Every boss fights alone: nothing else comes in while it is up. The <b>Math Hydra</b> is a solo boss with its arms far apart. Its armor holds until you shoot off the arm with the right answer to the problem on its belly; then blast the body while it is open. Shoot a wrong arm and the numbers scramble and it grows stronger.</li>
             <li><b>Controls:</b> arrow keys or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> to fly, <kbd>Space</kbd> to capture, left <kbd>Ctrl</kbd> to shoot, left <kbd>Shift</kbd> for the laser, <kbd>B</kbd> for a bomb, <kbd>P</kbd> to pause. On a computer the game goes full screen; <kbd>Esc</kbd> leaves it. On a touch screen put your right thumb anywhere on the right half: a ghost stick appears under it and the ship follows. LASER and BOMB sit bottom-left (FIRE too while Auto-fire is off). Swap the sides in Settings.</li>
             <li><b>Two players:</b> player 1 flies with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>, shoots with <kbd>F</kbd>, lasers with left <kbd>Shift</kbd> and bombs with <kbd>Q</kbd>; player 2 flies with the arrows, shoots with <kbd>.</kbd> or right <kbd>Ctrl</kbd>, lasers with right <kbd>Shift</kbd> and bombs with <kbd>/</kbd>. Rescue a downed partner by flying into their bubble, take turns catching for Teamwork bonuses, and stay close so your beam pops enemy shots.</li>
             <li><b>The map:</b> each sector is one kind of math and gets harder world by world. Clearing world 3 of a sector opens the next sector. Mixed opens last.</li>
@@ -328,7 +329,7 @@ body[data-screen=map] .wrap{max-width:1200px}
 <script>
 (()=>{
 'use strict';
-const BUILD='2026-11-04.1';
+const BUILD='2026-11-04.2';
 const $=s=>document.querySelector(s);
 const rand=(a,b)=>a+Math.random()*(b-a);
 const ri=n=>Math.floor(Math.random()*n);
@@ -355,7 +356,7 @@ const SECTORS=[
 const WORLDS_PER=6;
 /* Endless: not on the map; waves keep coming, faster each time, a boss every 4th wave, a Blitz every 5th */
 const ENDLESS={id:'endless',name:'Endless',sym:'∞',blurb:{3:'Wave after wave, faster and faster',4:'Wave after wave, faster and faster'},bg:['#1c1c28','#33334a']};
-function endlessRamp(w){return {tier:Math.min(5,2+.3*(w-1)),speed:112+4*(w-1),cap:Math.min(6,3+Math.floor((w-1)/3)),crash:Math.max(1.6,2.6-.1*(w-1)),shooter:Math.max(1.2,1.8-.05*(w-1)),aim:true,crashHP:w>=4?2:1,tank:true}}
+function endlessRamp(w){return {tier:Math.min(5,2+.3*(w-1)),speed:112+4*(w-1),cap:Math.min(6,3+Math.floor((w-1)/3)),crash:Math.max(1.6,2.6-.1*(w-1)),shooter:Math.max(1.2,1.8-.05*(w-1)),aim:true,crashHP:w>=4?2:1,tank:true,foe:1}}
 /* missions (Jetpack Joyride style): three at a time on the hub, each pays treats, the next one slides in when one is done.
    stat names the run counter it adds up; the order is the kid's sequence so two devices agree */
 const MISSIONS=[
@@ -387,14 +388,17 @@ const MISSION_BY={};MISSIONS.forEach(m=>MISSION_BY[m.id]=m);
 /* the four medals a world can give (Sky Force style): shown on the map, +10 treats the first time each is earned */
 const MEDALS={p:{name:'Perfect',ic:'✓',blurb:'every answer right'},u:{name:'Untouched',ic:'♥',blurb:'never hit'},r:{name:'Rescuer',ic:'☺',blurb:'all 3 astronauts'},b:{name:'Blitz',ic:'⚡',blurb:'a perfect bonus round'}};
 const MEDAL_IDS=['p','u','r','b'];
-/* the slow ramp inside a sector: numbers, bubble speed and enemies per world (index = world - 1) */
+/* the slow ramp inside a sector: numbers, bubble speed and enemies per world (index = world - 1); foe slows every enemy,
+   its shots and its spawn timers, so worlds 1 and 2 are gentle (Yan 11/4) */
 const WORLD_RAMP=[
-  {tier:1.0,speed:85,cap:1,crash:4.5,shooter:3.0,aim:true,crashHP:1,tank:false},
-  {tier:1.4,speed:90,cap:2,crash:4.0,shooter:2.8,aim:true,crashHP:1,tank:false},
-  {tier:2.0,speed:95,cap:2,crash:3.6,shooter:2.6,aim:true,crashHP:1,tank:false},
-  {tier:2.6,speed:100,cap:2,crash:3.2,shooter:2.2,aim:true,crashHP:1,tank:false},
-  {tier:3.4,speed:106,cap:3,crash:2.8,shooter:2.0,aim:true,crashHP:2,tank:false},
-  {tier:4.2,speed:112,cap:3,crash:2.6,shooter:1.8,aim:true,crashHP:2,tank:true}];
+  {tier:1.0,speed:58,cap:1,crash:7.0,shooter:4.5,aim:false,crashHP:1,tank:false,foe:.6},
+  {tier:1.3,speed:68,cap:1,crash:5.8,shooter:3.8,aim:false,crashHP:1,tank:false,foe:.72},
+  {tier:1.8,speed:80,cap:2,crash:4.4,shooter:3.0,aim:true,crashHP:1,tank:false,foe:.85},
+  {tier:2.6,speed:96,cap:2,crash:3.4,shooter:2.4,aim:true,crashHP:1,tank:false,foe:.95},
+  {tier:3.4,speed:106,cap:3,crash:2.8,shooter:2.0,aim:true,crashHP:2,tank:false,foe:1},
+  {tier:4.2,speed:112,cap:3,crash:2.6,shooter:1.8,aim:true,crashHP:2,tank:true,foe:1}];
+/* everything on the field is drawn and hit-tested at this scale (Yan 11/4: smaller items) */
+const SIZE=.75;
 const MIX_TIERS=[2,2.6,3.2,3.8,4.4,5];
 const WAVE_N=5,WAVES=3,L_MAX=20,LASER_T=2,CHARGE_T=25,BLITZ_T=15,CHAIN_T=1.5,SUPPLY_T=22;
 /* capsule power-ups (Raiden style): dropped by enemies, last a few seconds, never taken away */
@@ -691,7 +695,7 @@ const cv=$('#cv'),cx=cv.getContext('2d'),stage=$('#stage');
 let G=null,W=600,H=600,lastWorld=null;
 function sizeStage(){const r=stage.getBoundingClientRect();W=Math.max(280,r.width);H=Math.max(260,r.height);const d=DPR();
   cv.width=Math.round(W*d);cv.height=Math.round(H*d);cv.style.width=W+'px';cv.style.height=H+'px';cx.setTransform(d,0,0,d,0,0);
-  if(G){G.bs=clamp(Math.min(W/600,H/640),.6,1.5);G.cols=W<480?4:W<680?5:6;G.r=clamp(W*.06,24,44);G.shipW=clamp(W*.11,44,76);G.shipH=G.shipW*1.1;
+  if(G){G.bs=clamp(Math.min(W/600,H/640),.6,1.5);G.cols=W<480?4:W<680?5:6;G.r=clamp(W*.06,24,44)*SIZE;G.shipW=clamp(W*.11,44,76)*SIZE;G.shipH=G.shipW*1.1;
     for(const p of G.players){p.x=clamp(p.x,G.shipW/2,W-G.shipW/2);p.y=clamp(p.y,H*.1,H-G.shipH/2)}}}
 function colX(c){return W*(c+.5)/G.cols}
 function mkPlayer(i,id){const s=PF(id),perks=s.perks;
@@ -717,8 +721,8 @@ function startWorld(si,wi){Snd.init();Snd.click();goFull();const endless=si==='e
     if(p.perks.includes('p_fire')&&!p.up.rapid)applyUp(p,'rapid',true);if(p.perks.includes('p_shield')&&!p.up.shield)applyUp(p,'shield',true);recompute(p)});
   for(let i=0;i<20;i++)G.dots.push({x:Math.random(),y:Math.random(),s:rand(1,3)});
   $('#eq').className='eq';$('#eq').textContent='Ready?';updateHUD();
-  banner(endless?'Endless':`${s.name} · World ${wi}`,endless?'How many waves can you clear?':G.coop?'Fly into the right answer together!':'Fly into the right answer!');
-  applyTouchLayout();$('#gameHint').textContent=G.coop?'P1: W A S D to fly, F to shoot, Space to capture, left Shift laser, Q bomb · P2: arrow keys, . or right Ctrl to shoot, Enter to capture, right Shift laser, / bomb · auto-fire follows each player’s setting · P to pause':'Arrow keys or W A S D to fly · Space captures a bubble or astronaut in reach · it shoots on its own (left Ctrl too) · left Shift for the laser · B for a bomb · P to pause'}
+  banner(endless?'Endless':`${s.name} · World ${wi}`,endless?'How many waves can you clear?':G.coop?'Touch the right answer and capture it!':'Touch the right answer and press Space!');
+  applyTouchLayout();$('#gameHint').textContent=G.coop?'P1: W A S D to fly, F to shoot, Space to capture, left Shift laser, Q bomb · P2: arrow keys, . or right Ctrl to shoot, Enter to capture, right Shift laser, / bomb · auto-fire follows each player’s setting · P to pause':'Arrow keys or W A S D to fly · Touch a bubble or astronaut and press Space to capture it · it shoots on its own (left Ctrl too) · left Shift for the laser · B for a bomb · P to pause'}
 function recompute(p){const u=p.up;p.fireInt=[.33,.25,.2,.16][Math.min(3,u.rapid|0)];p.speedMul=Math.pow(1.2,u.speed|0)*(p.perks.includes('p_grip')?1.15:1);
   p.magnetR=Math.max(p.perks.includes('p_magnet')?100:0,[0,120,200][Math.min(2,u.magnet|0)]);p.lucky=u.lucky|0;
   p.longMul=1+.3*(u.long|0);p.chargeMul=[1,.8,.65][Math.min(2,u.battery|0)];p.laserLen=LASER_T+.5*(u.battery|0);
@@ -747,6 +751,9 @@ function scoreMul(){return (G.glowT>0?2:1)*(G.pw.x2>0?2:1)}
 function chainMul(){return 1+Math.min(3,Math.floor(G.chain/3))}
 function bossWave(){return G.endless?G.wave%4===0:(G.ramp.tank&&G.wave===G.waves)}
 function bossAlive(){return G.enemies.some(e=>(e.kind==='tank'||e.kind==='boss')&&e.hp>0&&!e.flee)}
+/* every boss fights alone (Yan 11/4): while one lives no other enemy spawns, and whatever was on screen flees when it arrives */
+function soloLive(){return hydraLive()||bossAlive()}
+function clearForBoss(){for(const o of G.enemies)o.flee=true;G.warns=[]}
 /* a bubble the Snatcher is carrying goes back to normal play (or fades with the rest) when its problem is over */
 function releaseHeld(b){const e=b.by;b.by=null;if(e){e.held=null;e.tgt=null;e.mode='leave'}}
 function catchBubble(p,b){const q=G.q;if(!q||!G.qOpen)return;G.qOpen=false;
@@ -835,18 +842,18 @@ function setUpFocus(i){if(!G||G.phase!=='upgrade')return;G.focus=clamp(i,0,G.off
 
 /* enemies */
 function spawnCrasher(){let x=rand(30,W-30);for(let k=0;k<8&&G.waveT<1&&G.players.some(p=>Math.abs(p.x-x)<60);k++)x=rand(30,W-30);
-  G.enemies.push({kind:'crash',x,y:-24,vx:0,vy:120*G.bs,hp:G.ramp.crashHP,r:18*G.bs,dive:false,tx:x,wob:rand(0,TAU),fireT:rand(.8,1.6),flash:0,score:50})}
-function spawnShooter(){const side=ri(2);G.enemies.push({kind:'shoot',x:side?W+30:-30,y:H*rand(.22,.3),vx:(side?-1:1)*90*G.bs,vy:0,hp:2,r:22*G.bs,fireT:G.ramp.shooter,life:9,flash:0,score:120,inside:false})}
-function spawnTank(){const hp=6+G.si+(G.endless?Math.floor(G.wave/2):0);G.enemies.push({kind:'tank',x:W/2,y:-70,vx:0,vy:40*G.bs,hp,max:hp,r:40*G.bs,fireT:3,flash:0,score:300,angry:false})}
+  G.enemies.push({kind:'crash',x,y:-24,vx:0,vy:120*G.bs,hp:G.ramp.crashHP,r:18*G.bs*SIZE,dive:false,tx:x,wob:rand(0,TAU),fireT:rand(.8,1.6),flash:0,score:50})}
+function spawnShooter(){const side=ri(2);G.enemies.push({kind:'shoot',x:side?W+30:-30,y:H*rand(.22,.3),vx:(side?-1:1)*90*G.bs,vy:0,hp:2,r:22*G.bs*SIZE,fireT:G.ramp.shooter,life:9,flash:0,score:120,inside:false})}
+function spawnTank(){const hp=6+G.si+(G.endless?Math.floor(G.wave/2):0);clearForBoss();G.enemies.push({kind:'tank',x:W/2,y:-70,vx:0,vy:40*G.bs,hp,max:hp,r:40*G.bs*SIZE,fireT:3,flash:0,score:300,angry:false})}
 /* a red chevron at the screen edge for .7 s before something flies in from that side */
 function warn(side,y){G.warns.push({side,y,t:.7})}
 /* asteroids: no guns, just in the way; a big one splits into two small ones */
-function spawnRock(small,x,y,vx){const big=!small,r=(big?26:14)*G.bs,verts=[];for(let i=0;i<9;i++)verts.push(rand(.72,1.06));
+function spawnRock(small,x,y,vx){const big=!small,r=(big?26:14)*G.bs*SIZE,verts=[];for(let i=0;i<9;i++)verts.push(rand(.72,1.06));
   const e={kind:'rock',big,x:x==null?rand(40,W-40):x,y:y==null?-30:y,vx:vx==null?rand(-25,25)*G.bs:vx,vy:(big?rand(45,70):rand(60,90))*G.bs,hp:big?3:1,r,rot:rand(0,TAU),vr:rand(-1.2,1.2),verts,
     crat:[[rand(-.5,.5),rand(-.5,.5),rand(.15,.3)],[rand(-.5,.5),rand(-.5,.5),rand(.1,.2)]],flash:0,score:big?40:30};G.enemies.push(e);return e}
 /* the Bubble Snatcher (Galaga's tractor beam): grabs an answer bubble and flies off with it; shoot it to get the bubble back */
 function spawnSnatcher(){const side=ri(2),y=H*.2;warn(side,y);
-  const e={kind:'snatch',x:side?W+100:-100,y,vx:0,vy:0,hp:G.wi>=4?3:2,r:20*G.bs,mode:'hunt',tgt:null,held:null,wait:0,flash:0,score:150,ph:rand(0,TAU),dir:side?-1:1};G.enemies.push(e);
+  const e={kind:'snatch',x:side?W+100:-100,y,vx:0,vy:0,hp:G.wi>=4?3:2,r:20*G.bs*SIZE,mode:'hunt',tgt:null,held:null,wait:0,flash:0,score:150,ph:rand(0,TAU),dir:side?-1:1};G.enemies.push(e);
   float('Mine now!',side?W-80:80,y+44,'#fca5a5',20);return e}
 function updateSnatch(e,edt){const sp=170*G.bs;e.ph+=edt;
   if(e.mode==='hunt'){if(!e.tgt||e.tgt.state!=='live'){const live=G.bubbles.filter(b=>b.state==='live'&&b.y>0&&b.y<H*.8);const ok=live.find(b=>b.ok);
@@ -863,16 +870,16 @@ function escapeWith(e){const b=e.held;e.held=null;e.gone=true;
 /* a swarm of bees on a sine path (Galaga formations); only the leader shoots; all of them down is a bonus */
 function spawnSwarm(n,blitz){n=n||5;const side=ri(2),id=++G.swarmN,y0=H*rand(.18,.32),amp=H*.08,ph=rand(0,TAU);G.swarms[id]={n,killed:0,blitz:!!blitz};
   const lead=blitz?10:100;if(!blitz)warn(side,y0);
-  for(let i=0;i<n;i++)G.enemies.push({kind:'bee',swarm:id,idx:i,blitz:!!blitz,x:side?W+lead+i*44:-lead-i*44,y:y0,y0,amp,ph,vx:(side?-1:1)*150*G.bs,hp:1,r:12*G.bs,fireT:2.5+i*.3,flash:0,score:blitz?60:40,inside:false,wing:rand(0,TAU)});
+  for(let i=0;i<n;i++)G.enemies.push({kind:'bee',swarm:id,idx:i,blitz:!!blitz,x:side?W+lead+i*44:-lead-i*44,y:y0,y0,amp,ph,vx:(side?-1:1)*150*G.bs,hp:1,r:12*G.bs*SIZE,fireT:2.5+i*.3,flash:0,score:blitz?60:40,inside:false,wing:rand(0,TAU)});
   if(!blitz)float('Bzzz!',side?W-70:70,y0+40,'#fde68a',20);return id}
 function leadBee(id){return G.enemies.find(o=>o.kind==='bee'&&o.swarm===id&&!o.flee&&o.hp>0)}
-/* a lost astronaut (Sky Force survivors): fly over to rescue; three per world make the Rescuer medal */
-function spawnAstro(){G.stats.astroN++;const k={kind:'astro',x:rand(50,W-50),y:-20,vy:26*G.bs,ph:rand(0,TAU),wob:rand(-25,25)};G.pickups.push(k);float('Astronaut! Fly over to rescue',k.x,120,'#fff',18);return k}
-/* the Mothership guards world 6 of the odd sectors: two turrets first, then the core opens and it sends crashers down */
-function spawnBoss(){const ew=G.endless?G.wave:0,hp=10+2*G.si+ew,r=70*G.bs,thp=3+Math.floor(G.si/2)+Math.floor(ew/4);
+/* a lost astronaut (Sky Force survivors): touch it and CAPTURE to rescue; three per world make the Rescuer medal */
+function spawnAstro(){G.stats.astroN++;const k={kind:'astro',x:rand(50,W-50),y:-20,vy:26*G.bs,ph:rand(0,TAU),wob:rand(-25,25)};G.pickups.push(k);float('Astronaut! Touch it and press Space',k.x,120,'#fff',18);return k}
+/* the Mothership guards world 6 of the odd sectors: two turrets first, then the core opens and fires a spread */
+function spawnBoss(){const ew=G.endless?G.wave:0,hp=10+2*G.si+ew,r=70*G.bs*SIZE,thp=3+Math.floor(G.si/2)+Math.floor(ew/4);
   const e={kind:'boss',x:W/2,y:-120,vy:40*G.bs,home:Math.max(H*.2,120),hp,max:hp,r,fireT:2.5,spawnT:5,flash:0,score:500,ph:rand(0,TAU),noteT:0,open:false,
     turrets:[-1,1].map((s,i)=>({s,hp:thp,max:thp,x:0,y:0,r:r*.3,fireT:2+2*i,flash:0,ang:Math.PI/2,tele:false}))};
-  bossTurrets(e);G.enemies.push(e);banner('Mothership!','Shoot the turrets, then the core');Snd.roar();return e}
+  bossTurrets(e);clearForBoss();G.enemies.push(e);banner('Mothership!','Shoot the turrets, then the core');Snd.roar();return e}
 function bossTurrets(e){for(const t of e.turrets){t.x=e.x+t.s*e.r*.72;t.y=e.y+e.r*.16}}
 function updateBoss(e,edt){e.ph+=edt;
   if(e.y<e.home)e.y=Math.min(e.home,e.y+e.vy*edt);else e.x=clamp(e.x+Math.cos(e.ph*.4)*W*.1*edt,e.r,W-e.r);
@@ -880,9 +887,8 @@ function updateBoss(e,edt){e.ph+=edt;
   for(const t of e.turrets){t.flash=Math.max(0,t.flash-edt);t.tele=false}
   if(G.phase!=='run'||e.y<e.home)return;
   for(const t of live){const p=nearestShip(t.x,t.y);if(p)t.ang=Math.atan2(p.y-t.y,p.x-t.x);t.fireT-=edt;t.tele=t.fireT<.4;
-    if(t.fireT<=0){const sp=220*G.bs;G.eshots.push({x:t.x+Math.cos(t.ang)*t.r,y:t.y+Math.sin(t.ang)*t.r,vx:Math.cos(t.ang)*sp,vy:Math.sin(t.ang)*sp,r:7});Snd.shoot();t.fireT=live.length>1?4:2.5}}
-  if(e.open){e.fireT-=edt;e.tele=e.fireT<.4;if(e.fireT<=0){const sp=200*G.bs;for(const a of [-.6,-.3,0,.3,.6])fireEshot(e,a,sp);Snd.shoot();e.fireT=2.5}
-    e.spawnT-=edt;if(e.spawnT<=0){e.spawnT=5;if(G.enemies.filter(o=>o.kind==='crash'&&!o.flee).length<4)spawnCrasher()}}}
+    if(t.fireT<=0){const sp=220*G.bs;G.eshots.push({x:t.x+Math.cos(t.ang)*t.r,y:t.y+Math.sin(t.ang)*t.r,vx:Math.cos(t.ang)*sp,vy:Math.sin(t.ang)*sp,r:7*SIZE});Snd.shoot();t.fireT=live.length>1?4:2.5}}
+  if(e.open){e.fireT-=edt;e.tele=e.fireT<.4;if(e.fireT<=0){const sp=200*G.bs;for(const a of [-.6,-.3,0,.3,.6])fireEshot(e,a,sp);Snd.shoot();e.fireT=2.5}}}
 /* a bullet reaching the Mothership: turrets first, then the hull; true when the bullet is used up */
 function bossHit(e,b){for(const t of e.turrets){if(t.hp<=0||dist(b.x,b.y,t.x,t.y)>t.r+6)continue;t.hp-=b.dmg;t.flash=.15;G.parts.push({x:b.x,y:b.y,vx:rand(-60,60),vy:rand(-60,20),life:.3,r:3,col:'#fff',g:0});
     if(t.hp<=0){burst(t.x,t.y,30);G.shake=8;const pts=100*mult()*scoreMul();G.score+=pts;checkTop();float('+'+pts,t.x,t.y-30,'#fff',22);
@@ -895,15 +901,15 @@ function bossHit(e,b){for(const t of e.turrets){if(t.hp<=0||dist(b.x,b.y,t.x,t.y
 /* the Math Hydra: a body on answer arms with its own problem on its belly. Its armor holds until the arm with the right
    answer is shot off; then the body takes hits until that arm grows back with a new problem. A wrong arm just grows back. */
 const HYDRA_OPEN=4.5,HYDRA_COL='#34d399';
-function hydraOK(){return G.phase==='run'&&!bossWave()&&(G.wave>=2||G.wi>=3)}
+function hydraOK(){return G.phase==='run'&&!bossWave()&&((G.wi>=2&&G.wave>=2)||G.wi>=3)}
 /* the hydra is a solo boss: while it lives nothing else spawns, and whatever is on screen flees */
 function hydraLive(){return G.enemies.some(e=>e.kind==='hydra'&&!e.flee&&e.hp>0)}
 /* a wrong arm scrambles the numbers across the live arms (the right one stays on exactly one arm) */
 function hydraScramble(e){const live=e.arms.filter(m=>m.state!=='gone');const vs=shuffle(live.map(m=>m.v));live.forEach((m,i)=>{m.v=vs[i];m.ok=m.v===e.q.ans})}
 function spawnHydra(){const angs=G.wi>=4?[-1.6,-.55,.55,1.6]:[-1.45,0,1.45],hp=6+G.wi;
-  const e={kind:'hydra',x:W/2,y:-90,vy:70*G.bs,r:44*G.bs,home:Math.max(H*.24,140),hp,max:hp,fireT:3,flash:0,score:400,ph:rand(0,TAU),open:0,miss:0,q:null,noteT:0,
+  const e={kind:'hydra',x:W/2,y:-90,vy:70*G.bs,r:44*G.bs*SIZE,home:Math.max(H*.24,140),hp,max:hp,fireT:3,flash:0,score:400,ph:rand(0,TAU),open:0,miss:0,q:null,noteT:0,
     arms:angs.map(a=>({a,v:0,ok:false,state:'on',g:1,x:W/2,y:-90}))};
-  hydraProblem(e);hydraArms(e);for(const o of G.enemies)if(o.kind!=='hydra')o.flee=true;G.enemies.push(e);banner('Math Hydra!','Shoot off the arm with the answer');Snd.roar();updateHUD();return e}
+  hydraProblem(e);hydraArms(e);clearForBoss();G.enemies.push(e);banner('Math Hydra!','Shoot off the arm with the answer');Snd.roar();updateHUD();return e}
 function hydraProblem(e){const q=MSMath.problem(probCat(),G.grade,G.tier,G,PF(G.ids[0]).facts);e.q=q;e.miss=0;
   const opts=shuffle(MSMath.choices(q,e.arms.length));e.arms.forEach((m,i)=>{m.v=opts[i];m.ok=opts[i]===q.ans})}
 /* where each pod sits: arms sway, and go limp (hanging lower) while the body is open */
@@ -964,7 +970,7 @@ function drawHydra(c,e,t){const fl=e.flash>0,open=e.open>0,r=e.r,pr=G.r*.78;c.sa
 function hydraLabel(c,e){const open=e.open>0,r=e.r,txt=open?`${e.q.text} = ${e.q.ans}`:`${e.q.text} = ?`,fs=Math.max(13,r*.3);c.save();c.translate(e.x,e.y);
   c.font=cfont(fs);c.textAlign='center';c.textBaseline='middle';c.lineWidth=Math.max(3,fs*.2);c.strokeStyle=open?'rgba(21,128,61,.9)':'rgba(15,23,42,.85)';c.strokeText(txt,0,r*.32);c.fillStyle='#fff';c.fillText(txt,0,r*.32);c.restore()}
 function hydraChip(){const e=G.enemies.find(o=>o.kind==='hydra'&&!o.flee&&o.hp>0&&!o.dead);if(!e)return '';return e.open>0?`Hydra: ${e.q.text} = ${e.q.ans} · hit the body!`:`Hydra: ${e.q.text} = ?`}
-function fireEshot(e,ang,sp){G.eshots.push({x:e.x,y:e.y+e.r*.6,vx:Math.sin(ang)*sp,vy:Math.cos(ang)*sp,r:7})}
+function fireEshot(e,ang,sp){G.eshots.push({x:e.x,y:e.y+e.r*.6,vx:Math.sin(ang)*sp,vy:Math.cos(ang)*sp,r:7*SIZE})}
 function enemyFire(e){const sp=220*G.bs;
   if(e.kind==='tank'){for(const a of (e.angry?[-.7,-.35,0,.35,.7]:[-.44,0,.44]))fireEshot(e,a,sp)}
   else{let ang=0;if(G.ramp.aim){const p=nearestShip(e.x,e.y);if(p)ang=Math.atan2(p.x-e.x,p.y-e.y)}fireEshot(e,ang,sp)}
@@ -974,14 +980,15 @@ function snatchOK(){return !bossWave()&&(G.si>=1||G.wi>=3||(G.wi>=2&&G.wave>=2))
 function swarmOK(){return !bossWave()&&(G.si>=2||G.wi>=3||(G.wi>=2&&G.wave>=3))}
 function active(){return G.phase==='run'||G.phase==='blitz'}
 /* enemies move on edt: zero while Freeze is on, slower under Time Warp; flashes and fleeing keep real time */
-function updateEnemies(dt){const cap=Math.min(6,G.ramp.cap+(G.wave-1)),fz=G.pw.freeze>0,edt=fz?0:dt*(G.pw.warp>0?.7:1);
-  if(G.phase==='run'&&!hydraLive()){G.spawnT-=edt;if(G.spawnT<=0&&G.enemies.filter(e=>e.kind==='crash'&&!e.flee).length<cap){spawnCrasher();G.spawnT=G.ramp.crash*(G.grade===3?1.15:1)*rand(.8,1.2)}
+function updateEnemies(dt){const cap=Math.min(6,G.ramp.cap+(G.wave-1)),fz=G.pw.freeze>0,edt=fz?0:dt*(G.pw.warp>0?.7:1)*(G.ramp.foe||1);
+  if(G.phase==='run'&&!soloLive()){G.spawnT-=edt;if(G.spawnT<=0&&G.enemies.filter(e=>e.kind==='crash'&&!e.flee).length<cap){spawnCrasher();G.spawnT=G.ramp.crash*(G.grade===3?1.15:1)*rand(.8,1.2)}
     if(G.ramp.shooter>0){G.shooterT-=edt;if(G.shooterT<=0&&!G.enemies.some(e=>e.kind==='shoot'&&!e.flee)){spawnShooter();G.shooterT=Math.max(3,6-.5*G.wi)}}
     if(hydraOK()&&!G.enemies.some(e=>e.kind==='hydra'&&!e.flee)){G.hydraT-=edt;if(G.hydraT<=0){spawnHydra();G.hydraT=14}}
     if(rockOK()){G.rockT-=edt;if(G.rockT<=0&&G.enemies.filter(e=>e.kind==='rock'&&e.big&&!e.flee).length<2){spawnRock();G.rockT=rand(6,9)}}
     if(snatchOK()&&!G.enemies.some(e=>e.kind==='snatch'&&!e.flee)){G.snatchT-=edt;if(G.snatchT<=0){spawnSnatcher();G.snatchT=18}}
-    if(swarmOK()&&!G.enemies.some(e=>e.kind==='bee'&&!e.flee)){G.swarmT-=edt;if(G.swarmT<=0){spawnSwarm();G.swarmT=16}}
-    G.astroT-=edt;if(G.astroT<=0&&G.stats.astroN<(G.endless?99:3)&&G.stats.astroN<G.wave){spawnAstro();G.astroT=rand(6,10)}
+    if(swarmOK()&&!G.enemies.some(e=>e.kind==='bee'&&!e.flee)){G.swarmT-=edt;if(G.swarmT<=0){spawnSwarm();G.swarmT=16}}}
+  /* astronauts and supply drops are not enemies, so they still come while a boss is up */
+  if(G.phase==='run'){G.astroT-=edt;if(G.astroT<=0&&G.stats.astroN<(G.endless?99:3)&&G.stats.astroN<G.wave){spawnAstro();G.astroT=rand(6,10)}
     G.capT+=edt;if(G.capT>SUPPLY_T){const x=rand(40,W-40);dropCap(x,-14);float('Supply drop!',x,120,'#fff',18)}}
   for(const w of G.warns)w.t-=dt;G.warns=G.warns.filter(w=>w.t>0);
   for(const e of G.enemies){e.flash=Math.max(0,e.flash-dt);e.tele=false;
@@ -1052,14 +1059,16 @@ function updateLaser(p,dt){p.muzzle=Math.max(0,p.muzzle-dt);
     if(e.kind==='tank'||e.kind==='hydra'){if(e.kind==='hydra'&&!(e.open>0))continue;e.hp-=.5;e.flash=.08;if(e.hp<=0)killEnemy(e)}else killEnemy(e)}}
   if(p.laser<=0)updateHUD()}
 
-/* CAPTURE (Space, Enter for player 2, or the CAPTURE button) catches the answer bubble or astronaut nearest in reach,
-   so the ship has to be under it when the key goes down. Flying into things does nothing. */
-function tryCapture(p){if(!G||!active()||p.down||p.out||p.capCD>0)return;
-  const rx=G.r*1.6,ry=H*.5;let best=null,bd=1e9;
-  for(const b of G.bubbles){if(b.state!=='live'||b.y<0||!G.qOpen)continue;const dx=Math.abs(b.x-p.x),dy=Math.abs(b.y-p.y);if(dx<rx&&dy<ry&&dx+dy<bd){bd=dx+dy;best={b}}}
-  for(const k of G.pickups){if(k.kind!=='astro')continue;const dx=Math.abs(k.x-p.x),dy=Math.abs(k.y-p.y);if(dx<rx*1.2&&dy<ry&&dx+dy<bd){bd=dx+dy;best={k}}}
-  if(!best)return;p.capCD=.35;
-  if(best.b)catchBubble(p,best.b);else{G.pickups=G.pickups.filter(x=>x!==best.k);collect(p,best.k)}}
+/* CAPTURE (Space, Enter for player 2, or the CAPTURE button) catches the answer bubble or astronaut the ship is touching
+   (Yan 11/4: no catching from a distance). Flying into things without the key does nothing. A press is remembered for
+   a moment (capBuf) so pressing just before contact still counts. True when something was caught. */
+function touchR(){return G.shipW*.45}
+function tryCapture(p){if(!G||!active()||p.down||p.out||p.capCD>0)return false;
+  let best=null,bd=1e9;
+  for(const b of G.bubbles){if(b.state!=='live'||b.y<0||!G.qOpen)continue;const d=dist(b.x,b.y,p.x,p.y);if(d<G.r+touchR()&&d<bd){bd=d;best={b}}}
+  for(const k of G.pickups){if(k.kind!=='astro')continue;const d=dist(k.x,k.y,p.x,p.y);if(d<16*SIZE+touchR()&&d<bd){bd=d;best={k}}}
+  if(!best)return false;p.capCD=.35;
+  if(best.b)catchBubble(p,best.b);else{G.pickups=G.pickups.filter(x=>x!==best.k);collect(p,best.k)}return true}
 /* ships, bullets and everything that touches them */
 function updatePlayers(dt){
   for(const p of G.players){if(p.out)continue;
@@ -1080,7 +1089,8 @@ function updatePlayers(dt){
     if(Math.random()<.8)G.parts.push({x:p.x+rand(-.16,.16)*G.shipW,y:p.y+G.shipH*.5,vx:rand(-25,25),vy:rand(160,240)*G.bs,life:rand(.15,.3),r:rand(2,4.5),col:pickOne(['rgba(255,214,120,.85)','rgba(255,140,80,.75)',p.col]),g:0});
     if(!p.shieldOn&&(p.up.shield|0)>0){p.shieldT-=dt;if(p.shieldT<=0){p.shieldOn=true;float('Shield up',p.x,p.y-50,'#7dd3fc',16);updateHUD()}}
     /* auto-fire (per player, on by default) or the fire key; drones and missiles follow the same rule */
-    p.capCD=Math.max(0,(p.capCD||0)-dt);if(h.capture&&!p.capPrev)tryCapture(p);p.capPrev=!!h.capture;
+    p.capCD=Math.max(0,(p.capCD||0)-dt);if(h.capture&&!p.capPrev)p.capBuf=.2;p.capPrev=!!h.capture;
+    if(p.capBuf>0){p.capBuf-=dt;if(tryCapture(p))p.capBuf=0}
     p.firing=active()&&(p.auto||!!h.fire);
     const fi=p.pw.over>0?p.fireInt*.5:p.fireInt;p.fireT-=dt;if(p.firing&&p.fireT<=0){p.fireT=fi;shoot(p)}
     if(drones(p)){p.droneT-=dt;if(p.firing&&p.droneT<=0){p.droneT=p.up.hive?.9:p.up.drone?[.5,.3][Math.min(1,(p.up.drone|0)-1)]:.35;
@@ -1099,7 +1109,7 @@ function shoot(p){const u=p.up,dmg=(1+(u.power|0))*(u.plasma?2:1),sp=760*G.bs,s=
   const pierce=u.starburst?2:(p.pw.over>0||u.pierce)?1:0;
   p.muzzle=.07;for(const b of shots)G.bullets.push({x:p.x+b.x+Math.sin(b.a)*6,y:p.y-G.shipH*.45,vx:Math.sin(b.a)*sp,vy:-Math.cos(b.a)*sp,dmg,col:p.col,pierce,hits:0,last:null,plasma:!!u.plasma});Snd.shoot()}
 function segDist(px,py,x1,y1,x2,y2){const dx=x2-x1,dy=y2-y1,l2=dx*dx+dy*dy||1;const t=clamp(((px-x1)*dx+(py-y1)*dy)/l2,0,1);return dist(px,py,x1+dx*t,y1+dy*t)}
-function updateCombat(dt){const alive=shipsAlive(),rx=G.shipW*.3,fz=G.pw.freeze>0,edt=fz?0:dt*(G.pw.warp>0?.6:1);
+function updateCombat(dt){const alive=shipsAlive(),rx=G.shipW*.3,fz=G.pw.freeze>0,edt=fz?0:dt*(G.pw.warp>0?.6:1)*(G.ramp.foe||1);
   for(const b of G.bullets){
     if(b.missile){b.life-=dt;if(b.life<=0){b.dead=true;continue}if(!b.tgt||b.tgt.hp<=0||b.tgt.flee||b.tgt.dead||(b.tgt.kind==='hydra'&&!(b.tgt.open>0)))b.tgt=nearestEnemy(b.x,b.y);
       const sp=560*G.bs;if(b.tgt){const a=aimAt(b.tgt,b.x,b.y),d=dist(b.x,b.y,a.x,a.y)||1,k=Math.min(1,dt*7);b.vx+=((a.x-b.x)/d*sp-b.vx)*k;b.vy+=((a.y-b.y)/d*sp-b.vy)*k}else b.vy+=(-sp-b.vy)*Math.min(1,dt*4);
@@ -1290,11 +1300,11 @@ function drawBoss(c,e,t){const r=e.r,fl=e.flash>0;c.save();c.translate(e.x,e.y);
     c.restore();
     const w=tr.r*2,x=tr.x-w/2,y=tr.y-tr.r-14;c.fillStyle='rgba(0,0,0,.4)';c.beginPath();c.roundRect(x-2,y-2,w+4,10,5);c.fill();c.fillStyle='#f5c842';c.beginPath();c.roundRect(x,y,w*Math.max(0,tr.hp)/tr.max,6,3);c.fill()}
   const w=r*1.6,x=e.x-w/2,y=e.y-r*.5-26;c.fillStyle='rgba(0,0,0,.4)';c.beginPath();c.roundRect(x-2,y-2,w+4,14,7);c.fill();c.fillStyle=e.hp/e.max>.5?'#22c55e':e.hp/e.max>.25?'#f5c842':'#ef4444';c.beginPath();c.roundRect(x,y,w*Math.max(0,e.hp)/e.max,10,5);c.fill()}
-function drawCap(c,k,t){const pw=POWERS[k.pu];if(!pw)return;c.save();c.translate(k.x,k.y);c.rotate(Math.sin(t*2+k.ph)*.18);
+function drawCap(c,k,t){const pw=POWERS[k.pu];if(!pw)return;c.save();c.translate(k.x,k.y);c.scale(SIZE,SIZE);c.rotate(Math.sin(t*2+k.ph)*.18);
   c.fillStyle=shade(pw.col,0,.26+.1*Math.sin(t*6+k.ph));dot(c,0,0,27);c.fillStyle=pw.col;c.beginPath();c.roundRect(-19,-12,38,24,12);c.fill();
   c.fillStyle='rgba(255,255,255,.35)';c.beginPath();c.roundRect(-15,-9,30,8,4);c.fill();c.strokeStyle='#fff';c.lineWidth=2;c.beginPath();c.roundRect(-19,-12,38,24,12);c.stroke();
   c.font=cfont(14);c.textAlign='center';c.textBaseline='middle';c.lineWidth=3;c.strokeStyle='rgba(15,23,42,.8)';c.strokeText(pw.tag,0,1);c.fillStyle='#fff';c.fillText(pw.tag,0,1);c.restore()}
-function drawAstro(c,k,t){c.save();c.translate(k.x,k.y);c.rotate(Math.sin(t*1.5+k.ph)*.25);const wave=Math.sin(t*8)*6;
+function drawAstro(c,k,t){c.save();c.translate(k.x,k.y);c.scale(SIZE,SIZE);c.rotate(Math.sin(t*1.5+k.ph)*.25);const wave=Math.sin(t*8)*6;
   c.strokeStyle='#e2e8f0';c.lineWidth=3;c.lineCap='round';c.beginPath();c.moveTo(6,2);c.lineTo(14,-8+wave);c.moveTo(-6,2);c.lineTo(-12,8);c.moveTo(-4,12);c.lineTo(-6,22);c.moveTo(4,12);c.lineTo(7,22);c.stroke();
   c.fillStyle='#f1f5f9';c.beginPath();c.roundRect(-8,-2,16,16,5);c.fill();c.fillStyle='#fb923c';c.beginPath();c.roundRect(-5,2,10,5,2);c.fill();
   c.fillStyle='#f8fafc';dot(c,0,-10,8);c.fillStyle='#1e3a8a';ell(c,1,-10,5,4);c.fill();c.fillStyle='rgba(255,255,255,.7)';dot(c,-1,-12,1.5);
@@ -1324,8 +1334,8 @@ function draw(){const c=cx,t=G.t;c.setTransform(DPR(),0,0,DPR(),0,0);c.clearRect
     else if(b.plasma){c.fillStyle='rgba(59,130,246,.35)';c.beginPath();c.roundRect(b.x-9,b.y-16,18,32,9);c.fill();c.fillStyle='#93c5fd';c.beginPath();c.roundRect(b.x-5,b.y-12,10,24,5);c.fill();c.fillStyle='#fff';c.beginPath();c.roundRect(b.x-2,b.y-9,4,12,2);c.fill()}
     else{const L=b.pierce?26:18;c.fillStyle=b.col;c.beginPath();c.roundRect(b.x-3,b.y-L/2,6,L,3);c.fill();if(b.pierce){c.fillStyle='#fff';c.beginPath();c.roundRect(b.x-2,b.y-L/2,4,8,2);c.fill()}}}
   for(const e of G.enemies)drawEnemy(c,e,t);
-  for(const s of G.eshots){c.fillStyle='#f87171';dot(c,s.x,s.y,s.r);c.fillStyle='#fff';dot(c,s.x-2,s.y-2,2)}
-  for(const k of G.pickups){if(k.kind==='heart'){c.fillStyle='#f87171';heartPath(c,k.x,k.y,10);c.fill()}else if(k.kind==='cap')drawCap(c,k,t);else if(k.kind==='astro')drawAstro(c,k,t);else{c.fillStyle='#fde68a';dot(c,k.x,k.y,8);c.fillStyle='#f59e0b';dot(c,k.x,k.y,4)}}
+  for(const s of G.eshots){c.fillStyle='#f87171';dot(c,s.x,s.y,s.r);c.fillStyle='#fff';dot(c,s.x-1.5,s.y-1.5,1.5)}
+  for(const k of G.pickups){if(k.kind==='heart'){c.fillStyle='#f87171';heartPath(c,k.x,k.y,10*SIZE);c.fill()}else if(k.kind==='cap')drawCap(c,k,t);else if(k.kind==='astro')drawAstro(c,k,t);else{c.fillStyle='#fde68a';dot(c,k.x,k.y,8*SIZE);c.fillStyle='#f59e0b';dot(c,k.x,k.y,4*SIZE)}}
   if(G.beam){c.save();c.strokeStyle='rgba(125,211,252,.7)';c.lineWidth=4;c.setLineDash([8,8]);c.lineDashOffset=-t*60;c.beginPath();c.moveTo(G.beam[0].x,G.beam[0].y);c.lineTo(G.beam[1].x,G.beam[1].y);c.stroke();c.restore()}
   for(const b of G.bubbles)drawToken(c,b,t);
   for(const e of G.enemies)if(e.kind==='hydra')hydraLabel(c,e);

@@ -16,7 +16,7 @@ const riley0 = () => ({ cur: 100, games: 1, stars: { 'add-1': 2, 'add-2': 1 }, b
 /* what the drive loop sees each tick */
 const snap = p => p.evaluate(() => { const G = window.__ms.G; if (!G) return null; const cv = document.querySelector('#cv');
   return { phase: G.phase, wave: G.wave, correct: G.correct, wrongs: G.wrongs, W: cv.clientWidth, H: cv.clientHeight, qOpen: G.qOpen, offer: G.offer, taken: G.taken,
-    players: G.players.map(q => ({ x: q.x, y: q.y, hearts: q.hearts, bombs: q.bombs, lv: Object.values(q.up).reduce((a, b) => a + b, 0), charge: q.charge, laser: q.laser, down: q.down, out: q.out, firing: q.firing, up: q.up })),
+    r: G.r, shipW: G.shipW, players: G.players.map(q => ({ x: q.x, y: q.y, hearts: q.hearts, bombs: q.bombs, lv: Object.values(q.up).reduce((a, b) => a + b, 0), charge: q.charge, laser: q.laser, down: q.down, out: q.out, firing: q.firing, up: q.up })),
     bubbles: G.bubbles.filter(b => b.state === 'live').map(b => ({ x: b.x, y: b.y, ok: b.ok })),
     enemies: G.enemies.filter(e => !e.flee).map(e => ({ x: e.x, y: e.y })), eshots: G.eshots.map(s => ({ x: s.x, y: s.y })), bullets: G.bullets.length }; });
 /* steer player pi toward (tx,ty): avoid wrong bubbles on the way and enemies nearby; the bot holds fire the whole time (there is no auto-fire) */
@@ -30,9 +30,8 @@ async function steer(p, pi, s, tx, ty, raw, wantOk = true) {
     const blockers = s.bubbles.filter(b => !b.ok && b.x > lo && b.x < hi && Math.abs(b.y - me.y) < 90);
     if (blockers.length) { const b = blockers[0]; dy = b.y > me.y ? -200 : 200; dx = 0; }
   }
-  /* CAPTURE pulses (a press every other tick) only when the nearest bubble in reach is the one we want */
-  const rr = Math.max(24, Math.min(44, s.W * .06)), reach = s.bubbles.filter(b => b.y >= 0 && Math.abs(b.x - me.x) < rr * 1.6 && Math.abs(b.y - me.y) < H * .5)
-    .sort((a, b) => (Math.abs(a.x - me.x) + Math.abs(a.y - me.y)) - (Math.abs(b.x - me.x) + Math.abs(b.y - me.y)))[0];
+  /* CAPTURE pulses (a press every other tick) only when the nearest bubble the ship touches is the one we want */
+  const d = b => Math.hypot(b.x - me.x, b.y - me.y), reach = s.bubbles.filter(b => b.y >= 0 && d(b) < s.r + s.shipW * .45).sort((a, b) => d(a) - d(b))[0];
   const cap = !!reach && reach.ok === wantOk && (steer.n = (steer.n || 0) + 1) % 2 === 0;
   await p.evaluate((i, h) => window.__ms.input(i, h), pi, { left: dx < -6, right: dx > 6, up: dy < -6, down: dy > 6, fire: true, capture: cap });
 }
@@ -156,6 +155,7 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
   await until(() => p.evaluate(() => window.__ms.G && window.__ms.G.phase === 'run'), 6000);
   const hy = await p.evaluate(async () => { const ms = window.__ms, G = ms.G, sl = t => new Promise(r => setTimeout(r, t));
     for (const q of G.players) { q.maxHearts = q.hearts = 20; } G.correct = -50; /* keep the wave from clearing mid-check */
+    G.ramp = Object.assign({}, G.ramp, { foe: 1 }); /* world 1 runs enemies at a gentler pace; the timings below are at full pace */
     const e = ms.spawnHydra(); e.y = e.home; await sl(150);
     const shot = (x, y) => ms.hydraHit(e, { x, y, dmg: 1 });
     const out = { arms: e.arms.length, oneRight: e.arms.filter(m => m.ok).length === 1 && e.arms.some(m => m.ok && m.v === e.q.ans), chip: document.querySelector('#eq2').textContent.includes(e.q.text) };
@@ -211,8 +211,11 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
     const sc0 = G.score, c0 = G.pickups.filter(k => k.kind === 'cap').length; G.chain = 0; G.lastCm = 1; G.streak = 0;
     for (const b of bees) ms.damage(b, 1); await sl(60);
     out.chain = G.chain === 5 && ms.chainMul() === 2; out.swarmBonus = G.score - sc0 >= 520 && G.pickups.filter(k => k.kind === 'cap').length >= c0 + 1; out.gain = G.score - sc0;
+    const far = ms.spawnAstro(); far.x = me.x; far.y = me.y - 140; far.vy = 0; await sl(60); ms.input(0, { capture: true }); await sl(80); ms.input(0, { capture: false }); await sl(60);
+    out.notFar = G.stats.rescues === 0 && G.pickups.includes(far); G.pickups = G.pickups.filter(k => k !== far);
     const a = ms.spawnAstro(); a.x = me.x; a.y = me.y - 6; await sl(60); ms.input(0, { capture: true }); await sl(80); ms.input(0, { capture: false }); await sl(60); out.rescued = G.stats.rescues === 1 && !G.pickups.includes(a);
-    const b = ms.spawnBoss(); b.y = b.home; await sl(120); const hp0 = b.hp, hit = (x, y, d) => ms.bossHit(b, { x, y, dmg: d });
+    const rock = ms.spawnRock(); const b = ms.spawnBoss(); out.othersFlee = rock.flee === true; G.spawnT = 0; G.rockT = 0; G.shooterT = 0; b.y = b.home; await sl(400);
+    out.alone = G.enemies.every(o => o === b || o.flee); await sl(120); const hp0 = b.hp, hit = (x, y, d) => ms.bossHit(b, { x, y, dmg: d });
     hit(b.x, b.y, 2); out.armored = b.hp === hp0 && !b.open;
     for (const t of b.turrets) hit(t.x, t.y, 20); await sl(120); out.open = b.open === true && b.turrets.every(t => t.hp <= 0);
     hit(b.x, b.y, 2); out.coreHit = b.hp === hp0 - 2;
@@ -221,7 +224,8 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
   check(en.held && en.freed, 'the Snatcher grabs a bubble and drops it when shot ' + JSON.stringify(en));
   check(en.split && en.bump, 'a big asteroid splits in two and a small one costs a heart on contact');
   check(en.bees && en.chain && en.swarmBonus, 'five bees, a ×2 chain, and the full-swarm bonus with a capsule (+' + en.gain + ')');
-  check(en.rescued, 'flying over an astronaut rescues it');
+  check(en.rescued && en.notFar, 'Space rescues an astronaut the ship touches, not one further up the screen ' + JSON.stringify({ rescued: en.rescued, notFar: en.notFar }));
+  check(en.othersFlee && en.alone, 'the Mothership fights alone: the field clears and nothing else spawns ' + JSON.stringify({ othersFlee: en.othersFlee, alone: en.alone }));
   check(en.armored && en.open && en.coreHit && en.dead, 'the Mothership is armored until both turrets die, then the core takes hits and it goes down');
   /* the Bonus Blitz, then an evolution card */
   const bz = await p.evaluate(async () => { const ms = window.__ms, G = ms.G, sl = t => new Promise(r => setTimeout(r, t)), me = G.players[0], out = {};
