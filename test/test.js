@@ -32,7 +32,7 @@ async function steer(p, pi, s, tx, ty, raw, wantOk = true) {
   }
   /* CAPTURE pulses (a press every other tick) only when the nearest bubble the ship touches is the one we want */
   const d = b => Math.hypot(b.x - me.x, b.y - me.y), reach = s.bubbles.filter(b => b.y >= 0 && d(b) < s.r + s.shipW * .45).sort((a, b) => d(a) - d(b))[0];
-  const cap = !!reach && reach.ok === wantOk && (steer.n = (steer.n || 0) + 1) % 2 === 0;
+  const cap = !!reach && reach.ok === wantOk && true;
   await p.evaluate((i, h) => window.__ms.input(i, h), pi, { left: dx < -6, right: dx > 6, up: dy < -6, down: dy > 6, fire: true, capture: cap });
 }
 const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, right: false, up: false, down: false, fire: true }), pi);

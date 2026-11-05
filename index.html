@@ -10,7 +10,6 @@
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif;background:#c9dbf0;color:#17283a}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
-<title>Math Shooters</title>
 <style>
 /* Math Shooters, mechanics pass: one neutral palette and simple shapes. The Spelling Worlds palettes,
    scenes and characters arrive with the theme pass (see build.js). */
@@ -295,7 +294,7 @@ body[data-screen=map] .wrap{max-width:1200px}
         <div class="toggles" style="justify-content:center"><button id="pAuto" class="tog" type="button" aria-pressed="true">Auto-fire</button><button id="pStick" class="tog" type="button" aria-pressed="false">Stick on the left</button><button id="fsBtn" class="tog" type="button" aria-pressed="false" hidden>Full screen</button></div>
         <button id="quitBtn" class="btn btn-ghost" type="button">End world and save</button>
       </div>
-      <div id="touchUI" class="touch-ui"><div class="t-btns"><button id="tbCap" class="t-btn cap" type="button" aria-label="Capture">CAPTURE</button><button id="tbFire" class="t-btn fire" type="button" aria-label="Fire">FIRE</button><button id="tbLaser" class="t-btn laser" type="button" aria-label="Laser">LASER</button><button id="tbBomb" class="t-btn bomb" type="button" aria-label="Bomb">BOMB</button></div></div>
+      <div id="touchUI" class="touch-ui"><div class="t-btns"><button id="tbCap" class="t-btn cap" type="button" aria-label="Capture">HALO</button><button id="tbFire" class="t-btn fire" type="button" aria-label="Fire">FIRE</button><button id="tbLaser" class="t-btn laser" type="button" aria-label="Laser">LASER</button><button id="tbBomb" class="t-btn bomb" type="button" aria-label="Bomb">BOMB</button></div></div>
     </div>
     <p class="hint" id="gameHint"></p>
   </section>
@@ -329,7 +328,7 @@ body[data-screen=map] .wrap{max-width:1200px}
 <script>
 (()=>{
 'use strict';
-const BUILD='2026-11-04.2';
+const BUILD='2026-11-05.1';
 const $=s=>document.querySelector(s);
 const rand=(a,b)=>a+Math.random()*(b-a);
 const ri=n=>Math.floor(Math.random()*n);
@@ -721,8 +720,8 @@ function startWorld(si,wi){Snd.init();Snd.click();goFull();const endless=si==='e
     if(p.perks.includes('p_fire')&&!p.up.rapid)applyUp(p,'rapid',true);if(p.perks.includes('p_shield')&&!p.up.shield)applyUp(p,'shield',true);recompute(p)});
   for(let i=0;i<20;i++)G.dots.push({x:Math.random(),y:Math.random(),s:rand(1,3)});
   $('#eq').className='eq';$('#eq').textContent='Ready?';updateHUD();
-  banner(endless?'Endless':`${s.name} · World ${wi}`,endless?'How many waves can you clear?':G.coop?'Touch the right answer and capture it!':'Touch the right answer and press Space!');
-  applyTouchLayout();$('#gameHint').textContent=G.coop?'P1: W A S D to fly, F to shoot, Space to capture, left Shift laser, Q bomb · P2: arrow keys, . or right Ctrl to shoot, Enter to capture, right Shift laser, / bomb · auto-fire follows each player’s setting · P to pause':'Arrow keys or W A S D to fly · Touch a bubble or astronaut and press Space to capture it · it shoots on its own (left Ctrl too) · left Shift for the laser · B for a bomb · P to pause'}
+  banner(endless?'Endless':`${s.name} · World ${wi}`,endless?'How many waves can you clear?':G.coop?'Hold Enter to pull the answer into your halo!':'Hold Space to pull the answer into your halo!');
+  applyTouchLayout();$('#gameHint').textContent=G.coop?'P1: W A S D to fly, F to shoot, hold Space for the halo, left Shift laser, Q bomb · P2: arrow keys, . or right Ctrl to shoot, hold Enter for the halo, right Shift laser, / bomb · auto-fire follows each player’s setting · P to pause':'Arrow keys or W A S D to fly · Touch a bubble or astronaut and press hold Space for the halo it · it shoots on its own (left Ctrl too) · left Shift for the laser · B for a bomb · P to pause'}
 function recompute(p){const u=p.up;p.fireInt=[.33,.25,.2,.16][Math.min(3,u.rapid|0)];p.speedMul=Math.pow(1.2,u.speed|0)*(p.perks.includes('p_grip')?1.15:1);
   p.magnetR=Math.max(p.perks.includes('p_magnet')?100:0,[0,120,200][Math.min(2,u.magnet|0)]);p.lucky=u.lucky|0;
   p.longMul=1+.3*(u.long|0);p.chargeMul=[1,.8,.65][Math.min(2,u.battery|0)];p.laserLen=LASER_T+.5*(u.battery|0);
@@ -906,19 +905,19 @@ function hydraOK(){return G.phase==='run'&&!bossWave()&&((G.wi>=2&&G.wave>=2)||G
 function hydraLive(){return G.enemies.some(e=>e.kind==='hydra'&&!e.flee&&e.hp>0)}
 /* a wrong arm scrambles the numbers across the live arms (the right one stays on exactly one arm) */
 function hydraScramble(e){const live=e.arms.filter(m=>m.state!=='gone');const vs=shuffle(live.map(m=>m.v));live.forEach((m,i)=>{m.v=vs[i];m.ok=m.v===e.q.ans})}
-function spawnHydra(){const angs=G.wi>=4?[-1.6,-.55,.55,1.6]:[-1.45,0,1.45],hp=6+G.wi;
+function spawnHydra(){const angs=G.wi>=4?[-2.05,-.75,.75,2.05]:[-1.85,0,1.85],hp=6+G.wi;
   const e={kind:'hydra',x:W/2,y:-90,vy:70*G.bs,r:44*G.bs*SIZE,home:Math.max(H*.24,140),hp,max:hp,fireT:3,flash:0,score:400,ph:rand(0,TAU),open:0,miss:0,q:null,noteT:0,
     arms:angs.map(a=>({a,v:0,ok:false,state:'on',g:1,x:W/2,y:-90}))};
-  hydraProblem(e);hydraArms(e);clearForBoss();G.enemies.push(e);banner('Math Hydra!','Shoot off the arm with the answer');Snd.roar();updateHUD();return e}
+  hydraProblem(e);hydraArms(e);G.enemies=[];G.eshots=[];G.warns=[];G.enemies.push(e);banner('Math Hydra!','Shoot off the arm with the answer');Snd.roar();updateHUD();return e}
 function hydraProblem(e){const q=MSMath.problem(probCat(),G.grade,G.tier,G,PF(G.ids[0]).facts);e.q=q;e.miss=0;
   const opts=shuffle(MSMath.choices(q,e.arms.length));e.arms.forEach((m,i)=>{m.v=opts[i];m.ok=opts[i]===q.ans})}
 /* where each pod sits: arms sway, and go limp (hanging lower) while the body is open */
-function hydraArms(e){const L=e.r+G.r*2.6;e.arms.forEach((m,i)=>{const limp=m.state==='limp',a=(limp?m.a*.45:m.a)+Math.sin(e.ph*1.6+i*1.7)*.13,len=L*(limp?.8:1);
+function hydraArms(e){const L=e.r+G.r*3.5;e.arms.forEach((m,i)=>{const limp=m.state==='limp',a=(limp?m.a*.45:m.a)+Math.sin(e.ph*1.6+i*1.7)*.13,len=L*(limp?.8:1);
   m.x=e.x+Math.sin(a)*len;m.y=e.y+Math.cos(a)*len})}
 function hydraRegrow(e){e.open=0;hydraProblem(e);for(const m of e.arms){m.g=m.state==='gone'?0:.4;m.state='grow'}
   float('It grew back with a new problem!',e.x,e.y-e.r-24,'#bbf7d0',20);Snd.roar();updateHUD()}
 function updateHydra(e,dt){e.ph+=dt;
-  if(e.y<e.home)e.y=Math.min(e.home,e.y+e.vy*dt);else{const m=e.r+G.r*2.6;e.x=clamp(e.x+Math.cos(e.ph*.5)*W*.12*dt,m,W-m)}
+  if(e.y<e.home)e.y=Math.min(e.home,e.y+e.vy*dt);else{const m=e.r+G.r*3.5;e.x=clamp(e.x+Math.cos(e.ph*.5)*W*.12*dt,m,W-m)}
   for(const m of e.arms)if(m.state==='grow'){m.g=Math.min(1,m.g+dt/.9);if(m.g>=1)m.state='on'}
   if(e.open>0){e.open-=dt;if(e.open<=0)hydraRegrow(e)}
   else if(G.phase==='run'&&e.y>=e.home){e.fireT-=dt;if(e.fireT<=0){enemyFire(e);e.fireT=rand(2.8,3.6)}}
@@ -1059,14 +1058,13 @@ function updateLaser(p,dt){p.muzzle=Math.max(0,p.muzzle-dt);
     if(e.kind==='tank'||e.kind==='hydra'){if(e.kind==='hydra'&&!(e.open>0))continue;e.hp-=.5;e.flash=.08;if(e.hp<=0)killEnemy(e)}else killEnemy(e)}}
   if(p.laser<=0)updateHUD()}
 
-/* CAPTURE (Space, Enter for player 2, or the CAPTURE button) catches the answer bubble or astronaut the ship is touching
-   (Yan 11/4: no catching from a distance). Flying into things without the key does nothing. A press is remembered for
-   a moment (capBuf) so pressing just before contact still counts. True when something was caught. */
-function touchR(){return G.shipW*.45}
+/* CAPTURE is a tractor halo around the ship while Space (Enter for player 2, or the HALO button) is held: an answer
+   bubble or astronaut that drifts into the halo is taken, so there is no press to time. True when something was caught. */
+function haloR(){return G.r*2.2}
 function tryCapture(p){if(!G||!active()||p.down||p.out||p.capCD>0)return false;
-  let best=null,bd=1e9;
-  for(const b of G.bubbles){if(b.state!=='live'||b.y<0||!G.qOpen)continue;const d=dist(b.x,b.y,p.x,p.y);if(d<G.r+touchR()&&d<bd){bd=d;best={b}}}
-  for(const k of G.pickups){if(k.kind!=='astro')continue;const d=dist(k.x,k.y,p.x,p.y);if(d<16*SIZE+touchR()&&d<bd){bd=d;best={k}}}
+  const R=haloR(),RA=R*1.3;let best=null,bd=1e9;
+  for(const b of G.bubbles){if(b.state!=='live'||b.y<0||!G.qOpen)continue;const d=dist(b.x,b.y,p.x,p.y);if(d<R&&d<bd){bd=d;best={b}}}
+  for(const k of G.pickups){if(k.kind!=='astro')continue;const d=dist(k.x,k.y,p.x,p.y);if(d<RA&&d<bd){bd=d;best={k}}}
   if(!best)return false;p.capCD=.35;
   if(best.b)catchBubble(p,best.b);else{G.pickups=G.pickups.filter(x=>x!==best.k);collect(p,best.k)}return true}
 /* ships, bullets and everything that touches them */
@@ -1089,8 +1087,7 @@ function updatePlayers(dt){
     if(Math.random()<.8)G.parts.push({x:p.x+rand(-.16,.16)*G.shipW,y:p.y+G.shipH*.5,vx:rand(-25,25),vy:rand(160,240)*G.bs,life:rand(.15,.3),r:rand(2,4.5),col:pickOne(['rgba(255,214,120,.85)','rgba(255,140,80,.75)',p.col]),g:0});
     if(!p.shieldOn&&(p.up.shield|0)>0){p.shieldT-=dt;if(p.shieldT<=0){p.shieldOn=true;float('Shield up',p.x,p.y-50,'#7dd3fc',16);updateHUD()}}
     /* auto-fire (per player, on by default) or the fire key; drones and missiles follow the same rule */
-    p.capCD=Math.max(0,(p.capCD||0)-dt);if(h.capture&&!p.capPrev)p.capBuf=.2;p.capPrev=!!h.capture;
-    if(p.capBuf>0){p.capBuf-=dt;if(tryCapture(p))p.capBuf=0}
+    p.capCD=Math.max(0,(p.capCD||0)-dt);if(h.capture)tryCapture(p);
     p.firing=active()&&(p.auto||!!h.fire);
     const fi=p.pw.over>0?p.fireInt*.5:p.fireInt;p.fireT-=dt;if(p.firing&&p.fireT<=0){p.fireT=fi;shoot(p)}
     if(drones(p)){p.droneT-=dt;if(p.firing&&p.droneT<=0){p.droneT=p.up.hive?.9:p.up.drone?[.5,.3][Math.min(1,(p.up.drone|0)-1)]:.35;
@@ -1259,6 +1256,9 @@ function drawDrones(c,p,t){if(p.down||p.out)return;const w=G.shipW*.28;for(const
   if(p.up.hive){c.fillStyle='rgba(253,224,71,.8)';c.fillRect(-w*.2,-w*.25,w*.4,w*.1);c.fillRect(-w*.32,w*.02,w*.64,w*.1)}
   c.fillStyle=`rgba(255,255,255,${(Math.floor(t*6+d.s)&1)?1:.4})`;dot(c,0,-w*.15,w*.12);
   const fl=w*(.3+.1*Math.sin(t*40));c.fillStyle='rgba(255,180,90,.8)';c.beginPath();c.moveTo(-w*.12,w*.4);c.lineTo(0,w*.4+fl);c.lineTo(w*.12,w*.4);c.closePath();c.fill();c.restore()}}
+/* the tractor halo, shown while CAPTURE is held */
+function drawHalo(c,p,t){const R=haloR();c.save();c.globalCompositeOperation='lighter';c.fillStyle='rgba(125,211,252,.12)';dot(c,p.x,p.y,R);
+  c.strokeStyle='rgba(186,230,253,.85)';c.lineWidth=2.5;c.setLineDash([8,6]);c.lineDashOffset=-t*60;c.beginPath();c.arc(p.x,p.y,R,0,TAU);c.stroke();c.setLineDash([]);c.restore()}
 function drawLaser(c,p,t){const bot=p.y-G.shipH*.45,hw=G.shipW*(.3+.05*Math.sin(t*50))*Math.min(1,p.laser*3,(p.laserLen-p.laser)*8+.2);
   c.save();c.globalCompositeOperation='lighter';
   const g=c.createLinearGradient(p.x-hw*1.8,0,p.x+hw*1.8,0);g.addColorStop(0,shade(p.col,0,0));g.addColorStop(.3,shade(p.col,.2,.55));g.addColorStop(.5,'rgba(255,255,255,.95)');g.addColorStop(.7,shade(p.col,.2,.55));g.addColorStop(1,shade(p.col,0,0));
@@ -1340,7 +1340,7 @@ function draw(){const c=cx,t=G.t;c.setTransform(DPR(),0,0,DPR(),0,0);c.clearRect
   for(const b of G.bubbles)drawToken(c,b,t);
   for(const e of G.enemies)if(e.kind==='hydra')hydraLabel(c,e);
   for(const p of G.players)if(p.laser>0&&!p.down&&!p.out)drawLaser(c,p,t);
-  for(const p of G.players){drawShip(c,p,t);drawDrones(c,p,t)}
+  for(const p of G.players){drawShip(c,p,t);drawDrones(c,p,t);if(p.held.capture&&!p.down&&!p.out)drawHalo(c,p,t)}
   for(const p of G.parts){c.globalAlpha=clamp(p.life*1.6,0,1);c.fillStyle=p.col;
     if(p.rect){c.save();c.translate(p.x,p.y);c.rotate(p.rot);c.fillRect(-p.r/2,-p.r,p.r,p.r*2);c.restore()}else if(p.star){starPath(c,p.x,p.y,p.r*1.4);c.fill()}else dot(c,p.x,p.y,p.r)}
   c.globalAlpha=1;
@@ -1398,7 +1398,7 @@ $('#mapBtn').onclick=()=>{Snd.click();openMap()};
 
 /* ---------- pause ---------- */
 function setPause(on){if(!G)return;G.paused=on;$('#pauseMenu').hidden=!on;
-  $('#pauseKeys').textContent=G.coop?'P1: W A S D to fly, F to shoot, Space to capture, left Shift laser, Q bomb · P2: arrow keys, . or right Ctrl to shoot, Enter to capture, right Shift laser, / bomb':'Arrow keys or W A S D to fly · Space to capture, left Ctrl to shoot (or let auto-fire do it) · left Shift for the laser · B for a bomb · on a touch screen drag to fly';
+  $('#pauseKeys').textContent=G.coop?'P1: W A S D to fly, F to shoot, hold Space for the halo, left Shift laser, Q bomb · P2: arrow keys, . or right Ctrl to shoot, hold Enter for the halo, right Shift laser, / bomb':'Arrow keys or W A S D to fly · hold Space for the halo, left Ctrl to shoot (or let auto-fire do it) · left Shift for the laser · B for a bomb · on a touch screen drag to fly';
   $('#fsBtn').hidden=!canFull();$('#fsBtn').setAttribute('aria-pressed',String(!!document.fullscreenElement));$('#pAuto').setAttribute('aria-pressed',String(P().autoFire!==false));
   try{if(Snd.ctx){on?Snd.ctx.suspend():Snd.ctx.resume()}}catch(e){}stick=null;G.players.forEach(p=>{p.held={};p.target=null;p.stick=null});applyTouchLayout()}
 $('#pauseBtn').onclick=()=>{setPause(!(G&&G.paused));$('#pauseBtn').blur()};
