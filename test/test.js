@@ -156,20 +156,23 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
   const hy = await p.evaluate(async () => { const ms = window.__ms, G = ms.G, sl = t => new Promise(r => setTimeout(r, t));
     for (const q of G.players) { q.maxHearts = q.hearts = 20; } G.correct = -50; /* keep the wave from clearing mid-check */
     G.ramp = Object.assign({}, G.ramp, { foe: 1 }); /* world 1 runs enemies at a gentler pace; the timings below are at full pace */
-    const e = ms.spawnHydra(); e.y = e.home; await sl(150);
-    const shot = (x, y) => ms.hydraHit(e, { x, y, dmg: 1 });
+    G.players[0].charge = 0; const e = ms.spawnHydra(); const laserFull = G.players[0].charge === 1; e.y = e.home; await sl(150);
+    const shot = (x, y) => ms.hydraHit(e, { x, y, dmg: 1 }), zap = (x, y) => ms.hydraHit(e, { x, y, dmg: 0, laser: true });
     const out = { arms: e.arms.length, oneRight: e.arms.filter(m => m.ok).length === 1 && e.arms.some(m => m.ok && m.v === e.q.ans), chip: document.querySelector('#eq2').textContent.includes(e.q.text) };
+    out.laserFull = laserFull;
     const hp0 = e.hp; shot(e.x, e.y); out.armored = e.hp === hp0 && !(e.open > 0);
-    const wrong = e.arms.find(m => !m.ok); shot(wrong.x, wrong.y); out.wrongGone = wrong.state === 'grow' && !(e.open > 0) && e.hp === hp0 + 2;
+    const r0 = e.arms.find(m => m.ok); shot(r0.x, r0.y); out.bounce = r0.state === 'on' && !(e.open > 0) && e.hp === hp0;
+    const wrong = e.arms.find(m => !m.ok); zap(wrong.x, wrong.y); out.wrongGone = wrong.state === 'grow' && !(e.open > 0) && e.hp === hp0 + 2;
     await sl(1300); out.wrongBack = wrong.state === 'on' && e.arms.filter(m => m.ok).length === 1;
-    const right = e.arms.find(m => m.ok), q0 = e.q; shot(right.x, right.y); out.open = e.open > 0 && right.state === 'gone';
+    const right = e.arms.find(m => m.ok), q0 = e.q; zap(right.x, right.y); out.open = e.open > 0 && right.state === 'gone';
     shot(e.x, e.y); out.bodyHit = e.hp === hp0 + 1;
     await sl(6000); out.regrown = !(e.open > 0) && e.arms.every(m => m.state === 'on') && e.arms.filter(m => m.ok).length === 1 && e.q !== q0 && e.arms.some(m => m.ok && m.v === e.q.ans);
-    for (let k = 0; k < 60 && !e.dead; k++) { const r = e.arms.find(m => m.ok); if (r.state === 'on') shot(r.x, r.y); shot(e.x, e.y); await sl(30); }
+    for (let k = 0; k < 60 && !e.dead; k++) { const r = e.arms.find(m => m.ok); if (r.state === 'on') zap(r.x, r.y); shot(e.x, e.y); await sl(30); }
     await sl(150); out.killed = e.dead === true && !G.enemies.includes(e);
     return out; });
   check(hy.arms === 3 && hy.oneRight && hy.chip, 'a hydra spawns with 3 arms, one right answer, and its problem in the HUD chip ' + JSON.stringify(hy));
   check(hy.armored, 'the hydra body is armored before the right arm is shot');
+  check(hy.bounce && hy.laserFull, 'bullets bounce off the hydra arms (laser only) and the hydra arrives with the laser full');
   check(hy.wrongGone && hy.wrongBack, 'a wrong arm comes off and grows back with the same number');
   check(hy.open && hy.bodyHit, 'shooting the right arm opens the body and the body takes damage');
   check(hy.regrown, 'the arm grows back with a new problem');
@@ -204,20 +207,21 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
     out.held = !!held && held.by === sn && sn.mode === 'flee';
     ms.damage(sn, 5); await sl(60); out.freed = !!held && held.state === 'live' && !held.by && sn.dead === true && G.stats.snatchers === 1;
     const big = ms.spawnRock(); big.x = W / 2; big.y = H * .4; big.vx = 0; big.vy = 0;
-    ms.damage(big, 3); await sl(60); const smalls = G.enemies.filter(o => o.kind === 'rock' && !o.big); out.split = big.dead === true && smalls.length >= 2;
+    ms.damage(big, 4); await sl(60); const smalls = G.enemies.filter(o => o.kind === 'rock' && !o.big); out.split = big.dead === true && smalls.length >= 2;
     const s = smalls[0]; const h0 = me.hearts; me.inv = 0; s.x = me.x; s.y = me.y; s.vx = 0; s.vy = 0; await sl(120); out.bump = me.hearts === h0 - 1 && s.hp <= 0;
     for (const o of G.enemies) if (o.kind === 'rock') o.hp = 0; await sl(60);
     const id = ms.spawnSwarm(); const bees = G.enemies.filter(o => o.kind === 'bee' && o.swarm === id); out.bees = bees.length === 5;
     const sc0 = G.score, c0 = G.pickups.filter(k => k.kind === 'cap').length; G.chain = 0; G.lastCm = 1; G.streak = 0;
-    for (const b of bees) ms.damage(b, 1); await sl(60);
+    for (const b of bees) ms.damage(b, 2); await sl(60);
     out.chain = G.chain === 5 && ms.chainMul() === 2; out.swarmBonus = G.score - sc0 >= 520 && G.pickups.filter(k => k.kind === 'cap').length >= c0 + 1; out.gain = G.score - sc0;
     const far = ms.spawnAstro(); far.x = me.x; far.y = me.y - 140; far.vy = 0; await sl(60); ms.input(0, { capture: true }); await sl(80); ms.input(0, { capture: false }); await sl(60);
     out.notFar = G.stats.rescues === 0 && G.pickups.includes(far); G.pickups = G.pickups.filter(k => k !== far);
     const a = ms.spawnAstro(); a.x = me.x; a.y = me.y - 6; await sl(60); ms.input(0, { capture: true }); await sl(80); ms.input(0, { capture: false }); await sl(60); out.rescued = G.stats.rescues === 1 && !G.pickups.includes(a);
     const rock = ms.spawnRock(); const b = ms.spawnBoss(); out.othersFlee = rock.flee === true; G.spawnT = 0; G.rockT = 0; G.shooterT = 0; b.y = b.home; await sl(400);
-    out.alone = G.enemies.every(o => o === b || o.flee); await sl(120); const hp0 = b.hp, hit = (x, y, d) => ms.bossHit(b, { x, y, dmg: d });
+    out.alone = G.enemies.every(o => o === b || o.flee); await sl(120); const hp0 = b.hp, hit = (x, y, d, laser) => ms.bossHit(b, { x, y, dmg: d, laser });
     hit(b.x, b.y, 2); out.armored = b.hp === hp0 && !b.open;
-    for (const t of b.turrets) hit(t.x, t.y, 20); await sl(120); out.open = b.open === true && b.turrets.every(t => t.hp <= 0);
+    for (const t of b.turrets) hit(t.x, t.y, 20); out.turretsBounce = b.turrets.every(t => t.hp === t.max);
+    for (const t of b.turrets) hit(t.x, t.y, 20, true); await sl(120); out.open = b.open === true && b.turrets.every(t => t.hp <= 0);
     hit(b.x, b.y, 2); out.coreHit = b.hp === hp0 - 2;
     hit(b.x, b.y, 500); await sl(120); out.dead = b.dead === true && !G.enemies.includes(b);
     return out; });
@@ -226,6 +230,7 @@ const stop = (p, pi) => p.evaluate(i => window.__ms.input(i, { left: false, righ
   check(en.bees && en.chain && en.swarmBonus, 'five bees, a ×2 chain, and the full-swarm bonus with a capsule (+' + en.gain + ')');
   check(en.rescued && en.notFar, 'Space rescues an astronaut the ship touches, not one further up the screen ' + JSON.stringify({ rescued: en.rescued, notFar: en.notFar }));
   check(en.othersFlee && en.alone, 'the Mothership fights alone: the field clears and nothing else spawns ' + JSON.stringify({ othersFlee: en.othersFlee, alone: en.alone }));
+  check(en.turretsBounce, 'bullets bounce off the Mothership turrets (laser only)');
   check(en.armored && en.open && en.coreHit && en.dead, 'the Mothership is armored until both turrets die, then the core takes hits and it goes down');
   /* the Bonus Blitz, then an evolution card */
   const bz = await p.evaluate(async () => { const ms = window.__ms, G = ms.G, sl = t => new Promise(r => setTimeout(r, t)), me = G.players[0], out = {};

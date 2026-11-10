@@ -29,11 +29,15 @@ comes the **Bonus Blitz**: 15 seconds where nothing can hurt you and two formati
 down is a perfect (+300, a capsule, a medal). Each world has four **medals** shown on the map: Perfect (no wrong
 answers), Untouched (never hit), Rescuer (all three astronauts), Blitz (a perfect bonus round); each pays 10 treats the
 first time. Bosses: the **tank** guards world 6 of the even sectors and gets angry at half health (faster, a five-way
-fan); the **Mothership** guards the odd ones (two turrets to shoot first, then the core opens, fires a spread). Every boss
+fan); the **Mothership** guards the odd ones (two turrets to burn off with the laser first, then the core opens, fires a spread). Every boss
 fights alone: other enemies flee when it arrives and none spawn while it lives (astronauts and supply drops still
 come). The **Math Hydra** (from wave 2 of world 2, or wave 1 from world 3; never on the boss wave) carries its own problem
 on its belly and one answer on each arm (3 arms, 4 from world 4). Its armor holds until the arm with the right answer
-is shot off; the body then takes hits for 4.5 seconds, until that arm grows back with a new problem. Progress runs
+is lasered off; the body then takes hits for 4.5 seconds, until that arm grows back with a new problem. **Boss arms
+(hydra arms and Mothership turrets) only come off to the laser**: bullets, missiles and bombs bounce off them. A boss
+arrives with every laser full, the laser recharges three times as fast while its arms are up, and one laser burst cuts
+one hydra arm (the lowest in the beam; a wrong one scrambles the numbers). Once the arms are gone, ordinary shots kill
+the body. Progress runs
 through a **world map**: six sectors (Addition, Subtraction, Times Tables, Multiplication, Division, Mixed), six worlds
 each, getting harder slowly, each with its own sky. World 3 of a sector opens the next sector; Mixed opens when world 3
 of every other sector is done. Numbers follow the kid's grade (Riley 3rd, Charlie and the test player Yan 4th).
@@ -90,7 +94,7 @@ slow), `SIZE` (the scale of everything on the field), `MIX_TIERS`, `WAVE_N` (cor
 wave), `LASER_T` and `CHARGE_T` (laser length and recharge), `HYDRA_OPEN` and `spawnHydra` (the hydra's open window, arms and
 health), `POWERS` (capsule durations and colours), `SUPPLY_T` (seconds without a capsule before one drifts in), `BLITZ_T`,
 `CHAIN_T`, the drop odds in `rollDrop`, the gates `rockOK`/`snatchOK`/`swarmOK` and the spawn timers set in `nextWave`
-(`rockT` 6–9 s, `snatchT` 18 s, `swarmT` 16 s), `spawnBoss` (turret and core health), the beam
+(`rockT` 9–13 s, `snatchT` 26 s, `swarmT` 24 s; `hydraT` 20 s; crasher cap `min(4, cap + (wave-1)/2)`), `spawnBoss` (turret and core health), the beam
 range and rescue timer in the co-op code, and the number ranges in `MSMath`.
 
 ## Mechanics pass: what is deliberately not here yet
